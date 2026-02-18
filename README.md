@@ -1,98 +1,214 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="https://github.com/SATR-ATM/.github/blob/main/assets/banner.png?raw=true" alt="SafeHome Banner" width="100%" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<div align="center">
+  <h1>SafeHome Backend (elFulk-Backend)</h1>
+  <p><b>المنزل الآمن - الجزء الخلفي<b> (Backend)</p>
+</div>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+<div dir="rtl" align="right">
 
-## Description
+## نظرة عامة
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+هذا المستودع يحتوي على هيكلة و code لمشروع **المنزل الآمن**.
+الهدف هو بناء نظام قوي وآمن لإدارة الرقابة الأبوية، حسابات المستخدمين، وتتبع الأنشطة.
 
-## Project setup
+التقنيات المستخدمة حاليًا:
+
+- NestJS
+- TypeScript
+- PostgreSQL
+- TypeORM
+- Docker Compose
+
+## حالة المشروع
+
+✅ مكتمل:
+
+- تهيئة مشروع NestJS
+- إعداد ESLint و Prettier و Husky
+- ربط قاعدة البيانات PostgreSQL عبر TypeORM
+- بناء أول Module فعلي: `users`
+- إنشاء مستخدم تجريبي (Sample User) للتحقق من التدفق الأساسي
+- تفعيل التحقق على مستوى التطبيق عبر `ValidationPipe`
+
+🚧 قيد التنفيذ:
+
+- توسيع نماذج قاعدة البيانات (Entities)
+- إضافة العلاقات بين الجداول
+- تقسيم الدومين إلى Modules إضافية
+- بقية الفريق سيكمل الوحدات المتبقية تمهيدًا لبناء نظام المصادقة (Auth)
+
+⏳ مخطط لاحقًا:
+
+- نظام المصادقة (Auth)
+- واجهات API لباقي الدومينات
+- الإشعارات وإدارة المحتوى
+- النشر (Deployment)
+
+## ما هو موجود فعليًا الآن
+
+تم تنفيذ `UsersModule` مع:
+
+- كيان `Users` يحتوي على نوع المستخدم: `parent | child | admin`
+- إنشاء مستخدم جديد: `POST /Users`
+- جلب المستخدمين: `GET /Users`
+
+> ملاحظة: بقية النماذج المذكورة في الخطة (Parent, Child, AccessPolicy, Sessions, ActivityLog, Notification, Content) ما زالت ضمن مراحل التنفيذ القادمة.
+
+## المتطلبات
+
+- Node.js **20+** (مطابق لصورة Docker الحالية)
+- npm
+- PostgreSQL 16+ (أو استخدام Docker Compose)
+
+## التشغيل محليًا
+
+1. تثبيت الاعتمادات:
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+2. إعداد متغيرات البيئة:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+ثم عدّل القيم داخل `.env` مثل:
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_USER`
+- `DB_PASS`
+- `DB_NAME`
+- `TYPEORM_SYNC`
+- `JWT_SECRET`
+
+3. إنشاء قاعدة البيانات (مثال):
+
+```sql
+CREATE DATABASE parental_control_db;
+```
+
+4. تشغيل المشروع:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev
 ```
 
-## Deployment
+الخادم يعمل افتراضيًا على:
+`http://localhost:3000`
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## التشغيل عبر Docker
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+من داخل مجلد المشروع:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose -f docker/docker-compose.yml up --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+الخدمات الحالية:
 
-## Resources
+- `api`: تطبيق NestJS على المنفذ `3000`
+- `db`: PostgreSQL 16
 
-Check out a few resources that may come in handy when working with NestJS:
+ملف البيئة الخاص بـ Docker:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- `docker/.env.docker`
 
-## Support
+## الأوامر المهمة
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Build
+npm run build
 
-## Stay in touch
+# تشغيل
+npm run start
+npm run start:dev
+npm run start:prod
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# الفحص والجودة
+npm run lint
+npm run format
 
-## License
+# الاختبارات
+npm run test
+npm run test:e2e
+npm run test:cov
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## هيكلة المشروع الحالية
+
+<div dir="ltr" align="left">
+
+```text
+src/
+├── app.module.ts
+├── main.ts
+└── modules/
+    └── user/
+        ├── dto/
+        ├── user.controller.ts
+        ├── user.entity.ts
+        ├── user.module.ts
+        └── user.service.ts
+docker/
+├── docker-compose.yml
+├── Dockerfile
+└── .env.docker
+```
+
+</div>
+## خارطة الدومين المستهدفة
+النماذج الأساسية المستهدفة في النظام:
+- User
+- Parent
+- Child
+- Admin
+- AccessPolicy
+- Session
+- ActivityLog
+- Notification
+- Content
+
+العلاقات المتوقعة:
+
+- Parent -> Children
+- Child -> AccessPolicy
+- Child -> Sessions -> ActivityLogs
+- User -> Notifications
+- Admin -> Content
+
+## تنبيه مهم
+
+يمنع استخدام الأوامر التالية:
+
+```bash
+npm install --force
+npm install --legacy-peer-deps
+```
+
+لأنها قد تسبب:
+
+- مشاكل في الاعتمادات
+- أخطاء خفية
+- أعطال مستقبلية
+
+عند وجود تعارض، يتم إصلاحه بشكل يدوي وصحيح.
+
+## المساهمة
+
+نرحب بالمساهمة في التطوير، الاختبارات، التوثيق، وتحسين التصميم المعماري.
+
+ابدأ من دليل المساهمة:
+
+- https://github.com/SATR-ATM/.github/blob/main/profile/CONTRIBUTING.md
+
+## مصادر مفيدة
+
+- NestJS Documentation: https://docs.nestjs.com
+
+</div>
