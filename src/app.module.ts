@@ -22,7 +22,17 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ContentModule } from './modules/content/content.module';
 
 @Module({
-  imports: [UsersModule, ParentsModule, ChildrenModule, AdminsModule, AccessPolicyModule, SessionsModule, ActivityLogModule, NotificationsModule, ContentModule],
+  imports: [
+    UsersModule,
+    ParentsModule,
+    ChildrenModule,
+    AdminsModule,
+    AccessPolicyModule,
+    SessionsModule,
+    ActivityLogModule,
+    NotificationsModule,
+    ContentModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

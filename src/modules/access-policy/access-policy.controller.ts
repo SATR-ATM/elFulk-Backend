@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { AccessPolicyService } from './access-policy.service';
 import { CreateAccessPolicyDto } from './dto/create-access-policy.dto';
 import { UpdateAccessPolicyDto } from './dto/update-access-policy.dto';
@@ -23,7 +31,10 @@ export class AccessPolicyController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAccessPolicyDto: UpdateAccessPolicyDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAccessPolicyDto: UpdateAccessPolicyDto,
+  ) {
     return this.accessPolicyService.update(+id, updateAccessPolicyDto);
   }
 
