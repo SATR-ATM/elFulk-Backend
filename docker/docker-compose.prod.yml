@@ -3,28 +3,26 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      target: development
-    container_name: pc_api
+      target: production
+    container_name: pc_api_prod
     env_file:
       - .env.docker
     ports:
       - "3000:3000"
-    volumes:
-      - ..:/app
-      - /app/node_modules
+    restart: always
     depends_on:
       - db
-    command: npm run start:dev
 
   db:
     image: postgres:16
-    container_name: pc_db
+    container_name: pc_db_prod
+    restart: always
     environment:
       POSTGRES_DB: parental_control_db
       POSTGRES_USER: pc_user
       POSTGRES_PASSWORD: strongpassword
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_prod:/var/lib/postgresql/data
 
 volumes:
-  db_data:
+  db_data_prod:
