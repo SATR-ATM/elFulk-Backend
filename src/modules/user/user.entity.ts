@@ -1,9 +1,11 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   CreateDateColumn,
+  BeforeInsert,
 } from 'typeorm';
+import { uuidv7 } from 'uuidv7';
 
 export enum UsersType {
   PARENT = 'parent',
@@ -13,8 +15,13 @@ export enum UsersType {
 
 @Entity()
 export class Users {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   id: string;
+
+  @BeforeInsert()
+  ensureId() {
+    this.id ??= uuidv7();
+  }
 
   @Column()
   first_name: string;
