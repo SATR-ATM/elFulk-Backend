@@ -5,8 +5,11 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
+import { AdminRoleAssignment } from './admin-role-assignment.entity';
+
 
 @Entity()
 export class Admin {
@@ -34,4 +37,7 @@ export class Admin {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+@OneToMany(() => AdminRoleAssignment, (assignment) => assignment.admin)
+  roleAssignments: AdminRoleAssignment[];
 }
