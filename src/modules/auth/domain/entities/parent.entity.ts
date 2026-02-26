@@ -1,3 +1,4 @@
+import { Session } from './session.entity';
 import {
   Entity,
   Column,
@@ -5,6 +6,7 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 
@@ -64,4 +66,7 @@ export class Parent {
       this.id = uuidv7();
     }
   }
+
+  @OneToMany(() => Session, (session) => session.parent)
+  sessions: Session[];
 }
