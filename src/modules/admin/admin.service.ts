@@ -1,16 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { hash } from 'bcrypt';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
 import { CreateAdminDto } from './create-admin.dto';
 import { UpdateAdminDto } from './update-admin.dto';
 
 const SALT_ROUNDS = 10;
 
-const hashPassword = async (password: string): Promise<string> => {
-  const bcrypt = await import('bcrypt');
-  return bcrypt.hash(password, SALT_ROUNDS) as Promise<string>;
-};
+const hashPassword = (password: string): Promise<string> =>
+  hash(password, SALT_ROUNDS);
 
 @Injectable()
 export class AdminService {
@@ -28,8 +31,13 @@ export class AdminService {
       throw new BadRequestException('Email already in use');
     }
 
-    if (!createAdminDto.password_hash || typeof createAdminDto.password_hash !== 'string') {
-      throw new BadRequestException('Password is required and must be a string');
+    if (
+      !createAdminDto.password_hash ||
+      typeof createAdminDto.password_hash !== 'string'
+    ) {
+      throw new BadRequestException(
+        'Password is required and must be a string',
+      );
     }
 
     const hashedPassword = await hashPassword(createAdminDto.password_hash);
@@ -77,7 +85,9 @@ export class AdminService {
 
   async update(id: string, updateAdminDto: UpdateAdminDto): Promise<Admin> {
     if (updateAdminDto.password_hash) {
-      updateAdminDto.password_hash = await hashPassword(updateAdminDto.password_hash);
+      updateAdminDto.password_hash = await hashPassword(
+        updateAdminDto.password_hash,
+      );
     }
 
     const admin = await this.adminRepository.preload({ id, ...updateAdminDto });
