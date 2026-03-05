@@ -105,7 +105,6 @@ export class AdminService {
     if (!admin) {
       throw new NotFoundException(`Admin with ID ${id} not found`);
     }
-
     return this.adminRepository.remove(admin);
   }
 }
