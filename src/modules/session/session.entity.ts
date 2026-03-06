@@ -34,7 +34,7 @@ export class Session {
     type: 'timestamptz',
     nullable: true,
   })
-  endTime: string;
+  endTime: Date;
 
   @Column({
     type: 'enum',
