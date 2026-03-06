@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
+import { Session } from '../session/session.entity';
 
 export enum UsersType {
   PARENT = 'parent',
@@ -40,4 +42,7 @@ export class Users {
 
   @Column({ nullable: true })
   last_login: Date;
+
+  @OneToMany(() => Session, (session) => session.child)
+  sessions: Session[];
 }
