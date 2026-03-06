@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminModule } from './modules/admin/admin.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -15,7 +14,6 @@ import { AdminModule } from './modules/admin/admin.module';
     }),
 
     TypeOrmModule.forRoot({
-        type: 'postgres',
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT),
       username: process.env.DB_USER,
@@ -23,11 +21,10 @@ import { AdminModule } from './modules/admin/admin.module';
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: process.env.TYPEORM_SYNC === 'true',
-
     }),
     UsersModule,
     AuthModule,
-    AdminModule
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
