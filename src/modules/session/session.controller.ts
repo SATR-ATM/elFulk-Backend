@@ -8,6 +8,8 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,6 +23,7 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { Session } from './session.entity';
 
+@UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('sessions')
 @Controller('sessions')
 export class SessionController {

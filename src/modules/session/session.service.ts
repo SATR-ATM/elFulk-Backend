@@ -25,7 +25,7 @@ export class SessionService {
         `Couldn't find child with id: ${session.childId}`,
       );
     }
-    return this.sessionRepository.create({
+    return this.sessionRepository.save({
       child: child,
       endTime: new Date(
         Date.now() + (session.endTime || this.MINIMUM_DURATION),

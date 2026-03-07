@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Users } from '../user/user.entity';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import { Exclude, Expose } from 'class-transformer';
 
 export enum SessionStatus {
   Active = 'active',
@@ -42,6 +43,7 @@ export class Session {
   endTime: Date;
 
   @ApiHideProperty()
+  @Exclude()
   @Column({
     name: 'status',
     type: 'enum',
@@ -50,6 +52,7 @@ export class Session {
   })
   private _status: SessionStatus;
 
+  @Expose()
   @ApiProperty()
   // use this to get the status
   get status(): SessionStatus {
