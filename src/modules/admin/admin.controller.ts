@@ -21,6 +21,7 @@ import {
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { UpdateAdminRoleStatusDto } from './dto/update-admin-role-status.dto';
 import { Admin } from './admin.entity';
 
 @ApiTags('Admins')
@@ -77,9 +78,9 @@ export class AdminController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update an admin',
+    summary: 'Update admin profile',
     description:
-      'Partially updates an existing admin record. Only provided fields will be updated.',
+      'Partially updates profile fields only (name, email, password). Role and status are excluded from this endpoint.',
   })
   @ApiParam({
     name: 'id',
@@ -92,11 +93,38 @@ export class AdminController {
   @ApiBadRequestResponse({
     description: 'Validation failed or email is already in use.',
   })
-  update(
+  updateProfile(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAdminDto: UpdateAdminDto,
   ): Promise<Admin> {
-    return this.adminService.update(id, updateAdminDto);
+    return this.adminService.updateProfile(id, updateAdminDto);
+  }
+
+  @Patch(':id/role-status')
+  @ApiOperation({
+    summary: 'Update role/status (super admin only)',
+    description:
+      'Privileged endpoint to update admin role or account status. Only SUPER_ADMIN is allowed to perform this action.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID of the admin to update role/status for',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiBody({ type: UpdateAdminRoleStatusDto })
+  @ApiOkResponse({
+    description: 'Admin role/status updated successfully.',
+    type: Admin,
+  })
+  @ApiNotFoundResponse({ description: 'Admin not found.' })
+  @ApiBadRequestResponse({
+    description: 'Invalid payload or self-escalation attempt.',
+  })
+  updateRoleStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateAdminRoleStatusDto,
+  ): Promise<Admin> {
+    return this.adminService.updateRoleAndStatus(id, updateDto);
   }
 
   @Delete(':id')
