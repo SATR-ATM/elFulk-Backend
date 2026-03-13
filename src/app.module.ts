@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ActivityLogModule } from './modules/activity-log/activity-log.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ActivityLogModule } from './modules/activity-log/activity-log.module';
     UsersModule,
     AuthModule,
     ActivityLogModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
