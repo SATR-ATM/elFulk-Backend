@@ -1,9 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AdminService } from './modules/admin/admin.service';
-
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,8 +15,8 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('Admin API')
-    .setDescription('Admin management system')
+    .setTitle('elFulk API Documentation')
+    .setDescription('API Documentation for the elFulk project')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -26,7 +25,6 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.get(AdminService).ensureSuperAdminExists();
-
   await app.listen(3000);
 }
 void bootstrap();

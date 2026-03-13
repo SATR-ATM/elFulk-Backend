@@ -5,10 +5,14 @@ import { UsersModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SessionModule } from './modules/session/session.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
+
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -25,6 +29,7 @@ import { AdminModule } from './modules/admin/admin.module';
     }),
     UsersModule,
     AuthModule,
+    SessionModule,
     AdminModule,
   ],
   controllers: [AppController],
