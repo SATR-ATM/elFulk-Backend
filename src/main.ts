@@ -14,7 +14,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-
+  app.setGlobalPrefix('api/v1');
   const config = new DocumentBuilder()
     .setTitle('Admin API')
     .setDescription('Admin management system')
@@ -23,7 +23,6 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  app.setGlobalPrefix('api/v1');
 
   SwaggerModule.setup('api/doc', app, document);
 
