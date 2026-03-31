@@ -8,6 +8,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ChildService } from './child.service';
@@ -48,7 +49,7 @@ export class ChildController {
   @ApiParam({ name: 'id', description: 'Child UUIDv7' })
   @ApiResponse({ status: 200, description: 'Child found', type: Child })
   @ApiResponse({ status: 404, description: 'Child not found' })
-  findOne(@Param('id') id: string): Promise<Child> {
+  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Child> {
     return this.childService.findOne(id);
   }
 
@@ -62,7 +63,10 @@ export class ChildController {
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Child not found' })
-  update(@Param('id') id: string, @Body() dto: UpdateChildDto): Promise<Child> {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateChildDto,
+  ): Promise<Child> {
     return this.childService.update(id, dto);
   }
 
@@ -72,7 +76,7 @@ export class ChildController {
   @ApiParam({ name: 'id', description: 'Child UUIDv7' })
   @ApiResponse({ status: 204, description: 'Child deleted successfully' })
   @ApiResponse({ status: 404, description: 'Child not found' })
-  remove(@Param('id') id: string): Promise<void> {
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.childService.remove(id);
   }
 }
