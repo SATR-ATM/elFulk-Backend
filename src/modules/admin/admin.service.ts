@@ -16,7 +16,7 @@ import { UpdateAdminRoleStatusDto } from './dto/update-admin-role-status.dto';
 
 const SALT_ROUNDS = 10;
 
-const hashPassword = (password: string): Promise<string> =>
+export const hashPassword = (password: string): Promise<string> =>
   hash(password, SALT_ROUNDS);
 
 @Injectable()
