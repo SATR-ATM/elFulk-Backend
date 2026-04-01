@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AccessPolicyModule } from './modules/access-policy/access-policy.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ChildModule } from './modules/child/child.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdminModule } from './modules/admin/admin.module';
     AuthModule,
     AccessPolicyModule,
     AdminModule,
+    ChildModule,
   ],
   controllers: [AppController],
   providers: [AppService],
