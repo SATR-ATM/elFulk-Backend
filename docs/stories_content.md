@@ -108,7 +108,7 @@ DB confirms → Backend returns "Upload finalized" to the client
 
 
 
-![Sequence Diagram](./img/Sequence Diagram.png)
+![Sequence Diagram](./img/Sequence_Diagram.png)
 
 **Admin Client → Backend → ImageKit → Storage/CDN**
 
