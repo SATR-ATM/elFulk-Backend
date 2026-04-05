@@ -32,33 +32,40 @@
 ---
 
 ## 1. Entity Diagram
-User
-├── id (PK)
-├── username
-├── role (child, admin)
-└── ...
+# 1. Entity Diagram
 
-Story
-├── id (PK)
-├── title
-├── description
-├── ageGroup (5-7, 8-10, etc.)
-├── category (story, video, course)
-├── isPublished (boolean)
-├── createdAt
-└── updatedAt
+**User**
+| Column     | Type      |
+|------------|-----------|
+| id         | PK        |
+| username   |           |
+| role       | child, admin |
+| ...        |           |
 
-MediaAsset
-├── id (PK)
-├── storyId (FK → Story.id)
-├── url
-├── type (image, video, pdf)
-├── size
-├── format
-└── createdAt
+**Story**
+| Column       | Type                           |
+|--------------|--------------------------------|
+| id           | PK                             |
+| title        |                                |
+| description  |                                |
+| ageGroup     | 5-7, 8-10, etc.                |
+| category     | story, video, course           |
+| isPublished  | boolean                        |
+| createdAt    |                                |
+| updatedAt    |                                |
 
+**MediaAsset**
+| Column     | Type                       |
+|------------|----------------------------|
+| id         | PK                         |
+| storyId    | FK → Story.id              |
+| url        |                            |
+| type       | image, video, pdf          |
+| size       |                            |
+| format     |                            |
+| createdAt  |                            |
 
-![Entity Diagram](./img/Entity Diagram.png)
+![Entity Diagram](../img/Entity Diagram.png)
 
 **Relationships**
 - Story has many MediaAssets
