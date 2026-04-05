@@ -32,8 +32,7 @@
 ---
 
 ## 1. Entity Diagram
-# 1. Entity Diagram
-# 1. Entity Diagram
+
 
 **User**
 | Column     | Type                       |
@@ -70,7 +69,7 @@
 | format     | string ('jpg', 'mp4', 'pdf', etc.) |
 | createdAt  | Date                             |
 
-![Entity Diagram](/docs/img/Entity Diagram.png)
+![Entity Diagram](./img/entity_diagram.png)
 
 **Relationships**
 - Story has many MediaAssets
