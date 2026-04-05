@@ -187,12 +187,12 @@ Returns signed parameters for admin uploads.
 ---
 
 ## 7. Production Architecture
-Admin Panel (Content Upload)
-↓
-Backend (Express API + Auth)
-↓
-ImageKit (Upload + CDN + Optimization)
-↓
-Database (Stories + Media Metadata)
-↓
+Admin Panel (Content Upload) ↓
+
+Backend (Express API + Auth) ↓
+
+ImageKit (Upload + CDN + Optimization) ↓
+
+Database (Stories + Media Metadata) ↓
+
 Child Frontend (Content Consumption)
