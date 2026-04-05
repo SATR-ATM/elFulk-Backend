@@ -33,37 +33,42 @@
 
 ## 1. Entity Diagram
 # 1. Entity Diagram
+# 1. Entity Diagram
 
 **User**
-| Column     | Type      |
-|------------|-----------|
-| id         | PK        |
-| username   |           |
-| role       | child, admin |
-| ...        |           |
-
-**Story**
-| Column       | Type                           |
-|--------------|--------------------------------|
-| id           | PK                             |
-| title        |                                |
-| description  |                                |
-| ageGroup     | 5-7, 8-10, etc.                |
-| category     | story, video, course           |
-| isPublished  | boolean                        |
-| createdAt    |                                |
-| updatedAt    |                                |
-
-**MediaAsset**
 | Column     | Type                       |
 |------------|----------------------------|
-| id         | PK                         |
-| storyId    | FK → Story.id              |
-| url        |                            |
-| type       | image, video, pdf          |
-| size       |                            |
-| format     |                            |
-| createdAt  |                            |
+| id         | string (UUID)              |
+| username   | string                     |
+| role       | enum ('child', 'admin')    |
+| email      | string                     |
+| password   | string (hashed)            |
+| createdAt  | Date                       |
+| updatedAt  | Date                       |
+
+**Story**
+| Column       | Type                              |
+|--------------|----------------------------------|
+| id           | string (UUID)                     |
+| title        | string                            |
+| description  | string                            |
+| ageGroup     | enum ('5-7', '8-10', etc.)       |
+| category     | enum ('story', 'video', 'course')|
+| isPublished  | boolean                           |
+| authorId     | string (FK → User.id)             |
+| createdAt    | Date                              |
+| updatedAt    | Date                              |
+
+**MediaAsset**
+| Column     | Type                             |
+|------------|---------------------------------|
+| id         | string (UUID)                    |
+| storyId    | string (FK → Story.id)           |
+| url        | string                           |
+| type       | enum ('image', 'video', 'pdf')   |
+| size       | number (bytes)                   |
+| format     | string ('jpg', 'mp4', 'pdf', etc.) |
+| createdAt  | Date                             |
 
 ![Entity Diagram](../img/Entity Diagram.png)
 
