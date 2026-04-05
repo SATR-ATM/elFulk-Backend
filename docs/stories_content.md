@@ -70,7 +70,7 @@
 | format     | string ('jpg', 'mp4', 'pdf', etc.) |
 | createdAt  | Date                             |
 
-![Entity Diagram](../img/Entity Diagram.png)
+![Entity Diagram](./img/Entity Diagram.png)
 
 **Relationships**
 - Story has many MediaAssets
