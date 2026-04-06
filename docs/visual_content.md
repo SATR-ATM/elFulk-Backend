@@ -66,11 +66,7 @@ Frontend → App Backend → YouTube Data API
 A typical backend request:
 
 ```
-GET https://www.googleapis.com/youtube/v3/search
-  ?part=snippet
-  &q={query}
-  &type=video
-  &key={API_KEY}
+GET https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&type=video&key={API_KEY}
 ```
 
 > ⚠️ **Quota:** The API enforces a default limit of 10,000 units per day.
