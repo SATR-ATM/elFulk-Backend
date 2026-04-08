@@ -5,14 +5,13 @@ import {
   BeforeInsert,
   CreateDateColumn,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { uuidv7 } from 'uuidv7';
 
 @Entity('child')
 export class Child {
   @ApiProperty({
-    description:
-      'Unique identifier for this child profile (Primary Key, auto-generated UUIDv7)',
+    description: 'Unique identifier (UUIDv7, auto-generated)',
     example: '01952a1b-d4e6-7c3f-a2b1-e9f0123456ab',
     format: 'uuid',
   })
@@ -20,59 +19,42 @@ export class Child {
   id: string;
 
   @ApiProperty({
-    description:
-      'Identifier of the parent associated with this child profile (Foreign Key, UUIDv7)',
+    description: 'UUID of the parent who owns this child profile',
     example: '01952a1b-d4e6-7c3f-a2b1-e9f0123456ab',
     format: 'uuid',
   })
   @Column({ type: 'uuid', nullable: false })
   parent_id: string;
 
-  @ApiProperty({
-    description: 'First name of the child — required, must not be null',
-    example: 'Widad',
-  })
+  @ApiProperty({ example: 'Widad' })
   @Column({ type: 'varchar', nullable: false })
   first_name: string;
 
-  @ApiProperty({
-    description: 'Last name of the child — required, must not be null',
-    example: 'test',
-  })
+  @ApiProperty({ example: 'Benali' })
   @Column({ type: 'varchar', nullable: false })
   last_name: string;
 
   @ApiProperty({
-    description: 'Age of the child in years — required, must not be null',
-    example: 10,
+    description: 'Date of birth of the child',
+    example: '2015-06-20',
+    type: 'string',
+    format: 'date',
   })
-  @Column({ type: 'int', nullable: false })
-  age: number;
+  @Column({ type: 'date', nullable: false })
+  date_of_birth: string;
 
-  @ApiProperty({
-    description: 'Gender of the child — optional, null if not provided',
-    example: 'female',
-    required: false,
-    nullable: true,
-  })
+  @ApiPropertyOptional({ example: 'female', nullable: true })
   @Column({ type: 'varchar', nullable: true })
   gender: string | null;
 
-  @ApiProperty({
-    description:
-      'URL of the child avatar image — optional, null if not provided',
+  @ApiPropertyOptional({
     example: 'https://example.com/avatars/widad.png',
-    required: false,
     nullable: true,
   })
   @Column({ type: 'varchar', nullable: true })
   avatar_url: string | null;
 
-  @ApiProperty({
-    description:
-      'Timestamp when this child profile was created (auto-generated)',
-    example: '2026-01-01T00:00:00.000Z',
-  })
+  @ApiProperty({ example: '2026-01-01T00:00:00.000Z' })
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

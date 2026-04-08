@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AccessPolicyModule } from './modules/access-policy/access-policy.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ChildModule } from './modules/child/child.module';
+import { ParentModule } from './modules/parent/parent.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ChildModule } from './modules/child/child.module';
     AccessPolicyModule,
     AdminModule,
     ChildModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

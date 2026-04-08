@@ -12,13 +12,20 @@ export class ChildService {
     private readonly childRepository: Repository<Child>,
   ) {}
 
-  async create(dto: CreateChildDto): Promise<Child> {
-    const child = this.childRepository.create(dto);
+  async create(parentId: string, dto: CreateChildDto): Promise<Child> {
+    const child = this.childRepository.create({
+      ...dto,
+      parent_id: parentId,
+    });
     return this.childRepository.save(child);
   }
 
   async findAll(): Promise<Child[]> {
     return this.childRepository.find();
+  }
+
+  async findByParent(parentId: string): Promise<Child[]> {
+    return this.childRepository.find({ where: { parent_id: parentId } });
   }
 
   async findOne(id: string): Promise<Child> {
