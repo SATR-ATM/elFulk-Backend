@@ -15,7 +15,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/Login.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
 import { ParentService } from '../parent/parent.service';
@@ -51,8 +51,14 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Activate parent mode with a 4-digit PIN' })
-  @ApiResponse({ status: 200, description: 'Parent mode activated successfully' })
-  @ApiResponse({ status: 400, description: 'PIN already activated or invalid format' })
+  @ApiResponse({
+    status: 200,
+    description: 'Parent mode activated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN already activated or invalid format',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   activatePin(
     @Request() req: { user: { id: string } },
