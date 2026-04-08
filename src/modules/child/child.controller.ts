@@ -48,12 +48,11 @@ export class ChildController {
     @Request() req: { user: { id: string } },
     @Body() body: CreateChildDto & { pin: string },
   ): Promise<Child> {
-    // Verify PIN before allowing child creation
     await this.parentService.verifyPin(req.user.id, body.pin);
 
     // Remove pin from the DTO before passing to service
     const { pin, ...dto } = body;
-    void pin; // explicitly unused
+    void pin;
     return this.childService.create(req.user.id, dto);
   }
 
