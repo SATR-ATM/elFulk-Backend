@@ -44,9 +44,7 @@
 
 ## 1. Entity Diagram
 
-=======
 ## 2. User Flow Analysis
->>>>>>> b3499dd (Update stories_content.md)
 
 > Based on the provided flowchart. This section maps UI states to backend requirements.
 
@@ -54,8 +52,7 @@
 
 ### Story Type Definitions
 
-![Entity Diagram](./img/Entity_Diagram.png)
-=======
+
 | Type | Description | Backend Implication |
 |---|---|---|
 | **Default** | Algorithmically recommended stories | Filter by `ageGroup` + `isPublished` |
@@ -166,9 +163,6 @@
 ![Entity Diagram](../img/1.png)
 
 
-
-![Sequence Diagram](./img/Sequence_Diagram.png)
-
 **Admin Client → Backend → ImageKit → Storage/CDN**
 
 **Steps:**
@@ -183,7 +177,6 @@
 **Key Principles:**
 - Media never passes through backend servers.
 - Only signed uploads are allowed.
-=======
 **Summary:**
 - One `User (admin)` authors many `Story` records.
 - One `Story` has many `MediaAsset` records (cascade delete).
