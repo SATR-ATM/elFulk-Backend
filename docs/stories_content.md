@@ -48,7 +48,7 @@
 
 > Based on the provided flowchart. This section maps UI states to backend requirements.
 
-![Entity Diagram](../img/4.png)
+![Entity Diagram](./img/4.png)
 
 ### Story Type Definitions
 
@@ -58,7 +58,6 @@
 | **Default** | Algorithmically recommended stories | Filter by `ageGroup` + `isPublished` |
 | **Age Escalation** | Progressively harder content as child grows | Query by `ageGroup` + `difficulty` ordering |
 | **Chosen by Parent** | Parent manually assigns story to child | `AssignedStory` join table required |
->>>>>>> b3499dd (Update stories_content.md)
 
 ### Filter Dimensions
 
@@ -160,7 +159,7 @@
 
 ### 3.2 Entity Relationships
 
-![Entity Diagram](../img/1.png)
+![Entity Diagram](./img/1.png)
 
 
 **Admin Client → Backend → ImageKit → Storage/CDN**
@@ -182,7 +181,6 @@
 - One `Story` has many `MediaAsset` records (cascade delete).
 - One `User (parent)` can assign many Stories to many children via `AssignedStory`.
 - One `User (child)` has many `ReadingProgress` records, one per story.
->>>>>>> b3499dd (Update stories_content.md)
 
 ---
 
@@ -243,12 +241,12 @@
 
 ### 5.1 Admin Media Upload
 
-![Entity Diagram](../img/2.png)
+![Entity Diagram](./img/2.png)
 
 
 ### 5.2 Child Content Delivery
 
-![Entity Diagram](../img/3.png)
+![Entity Diagram](./img/3.png)
 
 ---
 
