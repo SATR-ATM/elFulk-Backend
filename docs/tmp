@@ -1,0 +1,4 @@
+- One requirement I forgot is that the quota of the Youtube API should be somehow tracked and 
+the CRON jobs should support graceful failure in case of quota related issues. This is because 
+videos added by parents and admins also consume from the quota.
+- The current solution for handling the unavailability of yt-dlp is through the Redis counter

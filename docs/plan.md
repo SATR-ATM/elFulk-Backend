@@ -210,11 +210,12 @@ something similar to what Youtube does with its top bar -[x] The platform should
   not executed on every request. And TTL mechanism for Redis to ensure used links are valid.
 - The front-end should make sure to fallback properly in case the player is not able to play the
   video and make a request to the back-end accordingly.
+- The rotation of IP addresses as described by [Indivious](https://docs.invidious.io/ipv6-rotator/)
+  should be done using a CRON job
+- Redis should have persistence enabled as it is core the architecture of the solution
+- There needs to be a mechanism of reading previously banned IPs from a central log system to avoid
+  assigning the same IP address
 - Solution Description:
-
-## Full System Plan
-
----
 
 ### Architecture Overview
 
@@ -222,7 +223,7 @@ something similar to what Youtube does with its top bar -[x] The platform should
 Client → NestJS API
               ├── Redis (cache + locks + failure tracking)
               ├── yt-dlp process pool
-              └── CDN proxy (fallback only)
+              └── CDN proxy (fallback only, per failed resolution)
 ```
 
 ---
@@ -231,29 +232,22 @@ Client → NestJS API
 
 **Cold path (cache miss):**
 
-1. Request comes in for `/video/:videoId`
-2. Check Redis for `yt-dlp:${videoId}` — miss
-3. Acquire Redis lock `lock:${videoId}` with `SET NX EX 30` (30s timeout)
-4. If lock not acquired, poll Redis every 500ms for up to 25s waiting for another worker to finish extraction — this handles concurrent cold requests for the same video
+1. Request comes in for `/video/:videoId/manifest`
+2. Check Redis for `manifest:${videoId}` — miss
+3. Acquire Redis lock `lock:${videoId}` with `SET NX EX 30`
+4. If lock not acquired, poll Redis every 500ms up to 25s waiting for another worker — handles concurrent cold requests for the same video
 5. Spawn yt-dlp process, extract JSON
-6. Parse formats, filter to available resolutions among {144p, 240p, 360p, 480p, 720p, 1080p} — skip missing ones, don't generate broken manifest entries
-7. Parse `expire` Unix timestamp from any CDN URL query string — use as Redis TTL minus a 10 minute safety buffer
+6. Parse formats, filter to available resolutions among {144p, 240p, 360p, 480p, 720p, 1080p} — skip missing ones silently
+7. Parse `expire` Unix timestamp from CDN URL query string — use as Redis TTL minus 10 minute safety buffer
 8. Generate DASH manifest with direct CDN URLs
-9. Store in Redis: `yt-dlp:${videoId}` (raw formats JSON) and `manifest:${videoId}` (MPD XML), both with the same TTL
-10. Release lock
-11. Return manifest
+9. Store `yt-dlp:${videoId}` (raw formats JSON) and `manifest:${videoId}` (MPD XML) with parsed TTL
+10. Release lock, return manifest
 
-**Warm path (cache hit):**
-
-1. Request comes in
-2. Redis hit on `manifest:${videoId}`
-3. Return manifest immediately — sub-millisecond
+**Warm path:** Redis hit on `manifest:${videoId}` → return immediately.
 
 ---
 
 ### 2. Manifest Generation
-
-Filter yt-dlp formats:
 
 ```typescript
 const TARGET_HEIGHTS = [144, 240, 360, 480, 720, 1080];
@@ -261,7 +255,6 @@ const TARGET_HEIGHTS = [144, 240, 360, 480, 720, 1080];
 const videoStreams = formats
   .filter((f) => f.vcodec !== 'none' && f.acodec === 'none')
   .filter((f) => TARGET_HEIGHTS.includes(f.height))
-  // deduplicate by height, keep highest bitrate per height
   .reduce((acc, f) => {
     if (!acc[f.height] || f.tbr > acc[f.height].tbr) acc[f.height] = f;
     return acc;
@@ -272,155 +265,190 @@ const bestAudio = formats
   .sort((a, b) => b.abr - a.abr)[0];
 ```
 
-Generate MPD with direct CDN URLs in `<BaseURL>`. Set `Cache-Control: no-store` on the manifest response so the browser never caches it — the manifest must always come from your backend so you can swap it for the fallback version transparently.
+Set `Cache-Control: no-store` on all manifest responses — browser must never cache them so backend can transparently swap to fallback.
 
 ---
 
-### 3. Failure Tracking — Per Format, Not Per Video
+### 3. Frontend Failure Flow
 
-Client-side Shaka error handler hits `/video/:videoId/failure` with the formatId that failed. Backend:
-
-```
-HINCRBY failures:${videoId} ${formatId} 1
-HINCRBY failures:${videoId} total 1
-```
-
-Using a Redis hash keyed by formatId means you know which specific stream is broken, not just that something is broken. If `total > threshold` (e.g. 3), regenerate the manifest replacing broken format entries with your proxy URLs. Store the fallback manifest under `manifest:fallback:${videoId}`.
-
-Serve the fallback manifest from the same `/video/:videoId/manifest` endpoint — the client doesn't need a separate endpoint, just re-requests the manifest after reporting failure. The backend decides which manifest to return based on failure state.
-
----
-
-### 4. Fallback Proxy
-
-When serving from your backend, the proxy endpoint is `/stream/:videoId/:formatId`:
+Shaka has built-in retry logic (`streaming.retryParameters`) — configure it to retry automatically before ever calling your backend. Only after Shaka exhausts its retries does the frontend escalate.
 
 ```typescript
-const format = JSON.parse(await redis.get(`yt-dlp:${videoId}`)).find(
-  (f) => f.format_id === formatId,
-);
-
-const upstream = await fetch(format.url, {
-  headers: { range: req.headers.range ?? 'bytes=0-' },
+player.configure({
+  streaming: {
+    retryParameters: {
+      maxAttempts: 3,
+      baseDelay: 1000,
+      backoffFactor: 2,
+    },
+  },
 });
 
-res.status(upstream.status);
-res.setHeader('Accept-Ranges', 'bytes');
-res.setHeader('Content-Type', upstream.headers.get('content-type'));
-if (upstream.headers.get('content-range'))
-  res.setHeader('Content-Range', upstream.headers.get('content-range'));
+// Track failures per format client-side
+const formatFailures: Record<string, number> = {};
+const FAILURE_THRESHOLD = 3; // after Shaka's own retries per attempt
 
-upstream.body.pipe(res);
-```
+player.addEventListener('error', async (event) => {
+  const formatId = getCurrentFormatId(event);
+  formatFailures[formatId] = (formatFailures[formatId] ?? 0) + 1;
 
-**When the fallback itself fails:** the proxy is fetching from the same CDN URL stored in Redis. If that URL is expired or banned (not just client IP mismatch), the proxy will also return a non-200. In that case, trigger a fresh yt-dlp extraction, update Redis, and redirect the client to re-fetch the manifest. This is your re-extraction path.
-
----
-
-### 5. Re-extraction Path
-
-Triggered when:
-
-- Proxy fetch returns 403 or 410 (URL dead, not just IP mismatch)
-- Redis TTL expires naturally (handled by cache miss flow)
-
-```
-DELETE yt-dlp:${videoId}
-DELETE manifest:${videoId}
-DELETE manifest:fallback:${videoId}
-DELETE failures:${videoId}
-→ Re-run cold path
-```
-
-Return `302` to the client pointing back at the manifest URL so it re-fetches transparently.
-
----
-
-### 6. yt-dlp / Redis Operational Failure Tracking
-
-Separate from per-video failure counts. Track system-level health in Redis:
-
-```
-yt-dlp:failures:count    # incremented on each process error
-yt-dlp:failures:last     # Unix timestamp of last failure
-redis:reachable          # checked at startup and on interval
-```
-
-On yt-dlp spawn failure, increment `yt-dlp:failures:count`. Expose a `/health` endpoint:
-
-```json
-{
-  "ytdlp": {
-    "operational": true,
-    "recentFailures": 2,
-    "threshold": 5
-  },
-  "redis": {
-    "operational": true
-  },
-  "status": "degraded" // "ok" | "degraded" | "down"
-}
-```
-
-If `recentFailures > threshold`, mark yt-dlp as non-operational. No automatic recovery attempt — this requires human intervention. Surface it in your health endpoint and ideally alert (a simple webhook to a Discord channel or email is enough for a small deployment).
-
-This counter is informational only. The system doesn't try to self-heal yt-dlp failures beyond what the re-extraction path already does.
-
----
-
-### 7. Concurrency — Process Pool
-
-Don't spawn unbounded yt-dlp processes. Use BullMQ with a concurrency limit:
-
-```typescript
-const extractionQueue = new Queue('yt-dlp-extraction');
-const worker = new Worker('yt-dlp-extraction', extractVideo, {
-  concurrency: 3,
+  if (formatFailures[formatId] >= FAILURE_THRESHOLD) {
+    // Call backend once — response IS the new manifest
+    const newManifestUrl = await reportFailure(videoId, failedFormatIds);
+    await player.load(newManifestUrl);
+    // Reset counters for replaced formats
+    failedFormatIds.forEach((id) => delete formatFailures[id]);
+  }
 });
 ```
 
-Concurrency of 3 per core is a reasonable starting point. Requests beyond that queue rather than spawning more processes.
+The full frontend path is:
+
+```
+GET /manifest/:videoId
+  → Shaka plays
+  → Shaka auto-retries on error (built-in)
+  → Client threshold reached
+  → POST /video/:videoId/failure { formatIds: [...] }
+  → Response: manifest with updated entry where the back-end is the one streaming  ← same URL, backend now serves fallback
+  → Shaka loads manifest again
+  → Streams via proxy for failed resolutions only
+```
+
+No second round-trip. The failure endpoint returns the manifest immediately and the backend has already updated it.
 
 ---
 
-### 8. What Will Break and When
+### 4. Failure Endpoint Behavior
 
-**YouTube format changes:**
-yt-dlp periodically breaks when YouTube changes signature algorithms or introduces new bot detection. When this happens, extractions fail, `yt-dlp:failures:count` climbs, and the system marks itself as non-operational. Cached videos continue working until their TTL expires, after which new requests fail entirely. **This is an outage scenario with no automated recovery** — it requires updating the yt-dlp binary (usually a container image update). Typical yt-dlp community turnaround is hours to 1-2 days. Keep your container image on a rolling tag and have a runbook for this.
+`POST /video/:videoId/failure` receives the list of failed formatIds from the client.
+
+Backend behavior:
+
+1. Increment `HINCRBY failures:${videoId} total N` (N = number of failed formats reported)
+2. Check total against threshold
+
+**If total failures < threshold:**
+Read `failover:${videoId}`. If exists update mentioned formats with proxy links. If not exists
+take the entry in `manifest:${videoId}` and update mentioned formats. Return new manifest.
+Subsequent request follow same workflow: try `manifest:${videoId}` first. If failed use proxy.
+
+**If total failures ≥ threshold:**
+The CDN URLs themselves are likely dead, not just an IP mismatch issue. Delete the entire cache entry:
+
+```
+DEL yt-dlp:${videoId}
+DEL manifest:${videoId}
+DEL failover:${videoId}
+DEL failures:${videoId}
+```
+
+Cold path re-extraction triggers on next manifest request. Return `{ manifestUrl: '/manifest/:videoId' }` — client re-fetches and gets a freshly extracted manifest.
+
+**If the proxy also fails** (upstream fetch returns 403/410):
+This is caught in the proxy endpoint itself. Same action: delete cache entry, return 302 to manifest URL, client goes through cold path. Increment `yt-dlp:failures:count` since re-extraction is about to be forced.
+
+**Key point:** the fallback manifest only includes proxy URLs for the specific formats that failed. Working resolutions continue serving direct CDN URLs. A user on 360p is unaffected if only 1080p is broken.
+
+---
+
+### 5. yt-dlp Operational Failure Tracking
+
+**What counts as a yt-dlp failure:**
+
+- Process exits non-zero
+- Output JSON is malformed or empty
+- Re-extraction triggered by proxy failure returns same dead URLs
+
+**Per-failure action:**
+
+1. Log the current outbound IP used for the extraction attempt
+2. Store in database/log: `{ timestamp, ip, videoId, errorType }`
+3. Increment `yt-dlp:failures:count`, update `yt-dlp:failures:last`
+4. Send notification to responsible party
+
+**Notification content:**
+
+> yt-dlp extraction failed at `[timestamp]` from IP `[x.x.x.x]`.
+>
+> **First step:** rotate the outbound IP manually if the scheduled CRON rotation has not run recently. This is likely an IP ban.
+>
+> **If you are receiving multiple notifications like this in a short period**, IP rotation is not resolving the issue. This likely means YouTube has changed its extraction mechanism and yt-dlp has not yet been updated. Flag a temporary downtime, update the yt-dlp container image, and monitor for a fix from the yt-dlp maintainers (typically within 1–2 days). In the meantime, consider activating a backup extraction source (Piped or Invidious).
+>
+> Banned IP log entry saved. Recent failure count: `[N]`.
+
+**IP ban log** (database table or append-only log file):
+
+```
+{ ip, firstFailure, lastFailure, failureCount, resolved: bool }
+```
+
+This log is the basis for knowing which IPs are burned so you don't reassign them after rotation. Mark an entry as `resolved` manually once the IP is no longer in use.
+
+**Operational status thresholds:**
+
+```
+failures:count < 3   → "operational"
+failures:count 3–5   → "degraded" (notify but don't halt)
+failures:count > 5   → "down" (halt new extractions, serve cached only, notify urgently)
+```
+
+The application should also send notification that the system is no longer using the `yt-dlp` tool
+which means, soon users wouldn't be able to view videos. In the notification it should add a
+link that would help the admin reset the failures:count or have it as part of an admin dashboard.
+
+---
+
+### 6. IP Rotation Integration
+
+IPv6 rotation runs as a host CRON job independent of your application. The application does not manage rotation — it only:
+
+- Reads the current outbound IP at extraction time (via a simple `ip route get` or equivalent at process start)
+- Logs it alongside each failure
+- Includes it in failure notifications
+
+When a manual early rotation is triggered (following a notification), the responsible party runs the rotation script manually on the host and resets `yt-dlp:failures:count` in Redis. No application code changes needed.
+
+---
+
+### 7. What Will Break and When
+
+**YouTube format changes (outage scenario):**
+yt-dlp stops producing valid URLs. Failure count climbs, system marks itself down, notifications fire. Cached videos continue working until TTL expires. No automated recovery — requires yt-dlp image update. Typical resolution: 1–2 days. Notification message explicitly calls this out as the escalation path after IP rotation fails to help.
 
 **CDN URL expiry:**
-Handled by TTL. If TTL math is wrong (e.g. you used a fixed 6h instead of parsing `expire`), manifests will serve dead URLs. Parse `expire` from the URL directly.
+Handled by parsing `expire` from the URL directly for TTL. If this is wrong, manifests serve dead URLs which triggers the per-video failure → re-extraction path naturally.
 
 **Redis outage:**
-All caching, locking, and failure tracking is gone. Every request hits yt-dlp cold. With no lock mechanism, concurrent requests for the same video spawn multiple processes simultaneously. This likely saturates your server under any real load. No good automated mitigation — Redis is a hard dependency. Run Redis with persistence enabled so restarts don't lose warm cache.
+Hard dependency. No locks means concurrent cold requests spawn multiple yt-dlp processes simultaneously. No cache means every request is a cold hit. Run Redis with persistence. No automated mitigation beyond this.
 
 **IP-binding enforcement tightening:**
-If YouTube starts enforcing IP-binding strictly, direct CDN URLs stop working for most users and your fallback proxy absorbs all traffic. Bandwidth costs spike. No automated mitigation beyond what the fallback already does — it just becomes the default path instead of the exception.
+Direct CDN URLs fail for more users. Fallback proxy absorbs more traffic, bandwidth costs rise. The fallback path handles this correctly already — it just becomes the default for more requests.
+
+**Proxy also failing:**
+Handled explicitly — triggers cache eviction and re-extraction. If re-extraction also fails, yt-dlp failure tracking catches it.
 
 ---
 
-### 9. What the Frontend Needs to Do
+### 8. Redis Key Summary
 
-- Load manifest from `/video/:videoId/manifest`
-- On Shaka error, call `/video/:videoId/failure` with the failing formatId
-- Re-fetch manifest from the same URL — backend returns fallback manifest transparently
-- Reload player with new manifest
+| Key                     | Type          | TTL                  |
+| ----------------------- | ------------- | -------------------- |
+| `yt-dlp:${videoId}`     | string (JSON) | parsed from `expire` |
+| `manifest:${videoId}`   | string (XML)  | same                 |
+| `failover:${videoId}`   | string (XML)  | same                 |
+| `failures:${videoId}`   | hash          | same                 |
+| `lock:${videoId}`       | string        | 30s                  |
+| `yt-dlp:failures:count` | string        | none (manual reset)  |
+| `yt-dlp:failures:last`  | string        | none                 |
 
-No other frontend logic needed. The backend handles which manifest variant to serve.
+Banned IP log lives in your database or a persistent append-only file, not Redis, since it needs to survive Redis restarts and serve as an audit trail.
 
 ---
 
-### Summary of Redis Keys
+### ⚠️ Standing Caution
 
-| Key                            | Type          | TTL                  |
-| ------------------------------ | ------------- | -------------------- |
-| `yt-dlp:${videoId}`            | string (JSON) | parsed from `expire` |
-| `manifest:${videoId}`          | string (XML)  | same                 |
-| `manifest:fallback:${videoId}` | string (XML)  | same                 |
-| `failures:${videoId}`          | hash          | same                 |
-| `lock:${videoId}`              | string        | 30s                  |
-| `yt-dlp:failures:count`        | string        | none (manual reset)  |
-| `yt-dlp:failures:last`         | string        | none                 |
+yt-dlp is a reverse-engineered tool that depends entirely on YouTube's internal API not changing. YouTube makes breaking changes periodically with no notice. When this happens, **there is no automated fix** — the system will be in a degraded or down state until the yt-dlp maintainers release an update and you deploy it. This is a structural risk of the approach, not an edge case. Plan for it operationally: have a runbook, have a status page or way to communicate downtime to users, and keep the yt-dlp container image update process as frictionless as possible (single command redeploy). Piped or Invidious as a fallback extractor is worth revisiting once the core system is stable.
 
 ## Requirements
 
