@@ -262,8 +262,6 @@ The rotation script reads this log before deciding whether an early rotation is 
 
 ## 4. Sequence Diagrams
 
-The diagrams below should be generated separately and saved under `diagrams/visual_content/`. Each section describes the sequence in detail to serve as input for diagram generation.
-
 ### List of Diagrams
 
 | #   | Name                                | File                                               |
@@ -292,8 +290,6 @@ The diagrams below should be generated separately and saved under `diagrams/visu
 7. `NestJS` writes result to `Redis` with appropriate TTL.
 8. Response assembled: `{ id, title, thumbnail, duration, categoryId, progressSeconds }`.
 9. `Client` renders the home screen grid with category filter bar and watch progress overlays.
-
-**Notes:** No YouTube API call happens here — all data is from the platform's own DB. Show the Redis cache miss/hit as an `alt` block. The category call can be shown as a parallel call or a prior separate request.
 
 ```mermaid
 sequenceDiagram
@@ -344,7 +340,36 @@ sequenceDiagram
 7. `NestJS` writes result to `Redis` with TTL. Writes the search term to `search_history` in `PostgreSQL` as a fire-and-forget async side effect (not blocking the response).
 8. `Client` renders search results: `{ id, title, thumbnail, duration, progressSeconds }`.
 
-**Notes:** The search is always against the platform's own DB — no arrow should go to YouTube. Show the async history write as a side-effect, not on the critical path. Show `alt` block for cache hit/miss.
+```mermaid
+sequenceDiagram
+    participant Child
+    participant Client as Mobile/Web Client
+    participant API as NestJS API
+    participant Redis
+    participant DB as PostgreSQL
+
+    Child->>Client: Focus search bar
+    Client->>API: GET /search/history
+    API->>DB: Get last 10 terms for childProfileId
+    DB-->>API: History list
+    API-->>Client: History list
+
+    Child->>Client: Submit search term
+    Client->>API: GET /search?q=term&categoryId=?
+
+    API->>Redis: Check cache "search:{childId}:{term}:{category|all}"
+    alt Cache Hit
+        Redis-->>API: Cached results
+    else Cache Miss
+        API->>DB: Full-text search on Video (title) + category filter
+        DB-->>API: Results
+        API->>Redis: Store result (TTL)
+        API->>DB: Async → INSERT search_history
+    end
+
+    API-->>Client: {id, title, thumbnail, duration, progressSeconds}
+    Client->>Child: Render search results
+```
 
 </details>
 
@@ -373,7 +398,41 @@ sequenceDiagram
 14. `Client (Shaka)` loads manifest and begins streaming **directly** from `YouTube CDN`. No proxying occurs in the happy path.
 15. `NestJS` saves `WatchProgress` record to `PostgreSQL` (initial entry or timestamp update) — shown as async, not blocking playback.
 
-**Notes:** The lock contention path (step 8) and the main extraction path (steps 7–12) should be in an `alt` block. The warm/cold outer paths should be a separate outer `alt` block. Shaka streams directly to the CDN — make this visually clear. `yt-dlp` is a subprocess, not a service.
+```mermaid
+sequenceDiagram
+    participant Child
+    participant Client as Shaka Player
+    participant API as NestJS API
+    participant Redis
+    participant YTDLP as yt-dlp process
+    participant CDN as YouTube CDN
+
+    Child->>Client: Tap video
+    Client->>API: GET /manifest/{videoId}
+
+    API->>Redis: Check manifest:{videoId}
+    alt Warm Path (Cache Hit)
+        Redis-->>API: MPD manifest
+    else Cold Path (Cache Miss)
+        API->>Redis: SET NX lock:{videoId} (30s)
+        alt Lock Acquired
+            API->>YTDLP: Spawn subprocess (videoId)
+            YTDLP->>CDN: Extract formats & CDN URLs
+            CDN-->>YTDLP: JSON formats
+            YTDLP-->>API: Raw data
+            API->>API: Filter resolutions + best audio<br/>Build DASH MPD<br/>Parse expire → TTL = expire-10min
+            API->>Redis: Store manifest:{videoId} + yt-dlp:{videoId}
+            API->>Redis: Release lock
+        else Lock Not Acquired
+            API->>Redis: Poll every 500ms until manifest appears
+        end
+    end
+
+    API-->>Client: DASH MPD manifest (Cache-Control: no-store)
+    Client->>CDN: Stream directly (Shaka Player)
+    note right of Client: Direct CDN streaming — no proxy in happy path
+    API->>DB: Async → Update WatchProgress
+```
 
 </details>
 
@@ -401,7 +460,46 @@ sequenceDiagram
 
 **[opt: Global threshold crossed]** 17. If `yt-dlp:failures:count` exceeds the global threshold: `NestJS` sends an admin notification with IP rotation recommendation and a link to the admin panel. Admin takes corrective action (rotation trigger, counter reset) via the admin panel — no direct Redis access needed.
 
-**Notes:** Stage 1 and Stage 2 should be visually separated as distinct `alt`/`opt` blocks. Emphasize that `failures:{videoId}` is only incremented when the proxy fails, not when CDN URLs fail. The failover manifest and the original manifest coexist in Redis — show both keys. The IP failure log is a host-side resource shared with the rotation script; show it as a separate participant.
+```mermaid
+sequenceDiagram
+    participant Client as Shaka Player
+    participant API as NestJS API
+    participant Redis
+    participant YTDLP as yt-dlp
+    participant CDN as YouTube CDN
+    participant Log as IP Failure Log (host)
+
+    Client->>CDN: Stream fails on one or more formats
+    note right of Client: Internal retry (3×, exponential backoff)
+    Client->>API: POST /video/{videoId}/failure {formatIds: [...]}
+
+    %% Stage 1 – CDN failure (frontend)
+    API->>Redis: Read manifest:{videoId}
+    API->>API: Replace failed format URLs with /proxy/...
+    API->>Redis: Save failover:{videoId}
+    API-->>Client: Failover manifest (working formats stay on CDN)
+
+    Client->>API: Proxy request for failed format
+    API->>CDN: Forward request
+
+    %% Stage 2 – Proxy failure (backend)
+    alt Proxy returns 403/410
+        API->>Redis: Increment failures:{videoId}
+        API->>Redis: Evict manifest + yt-dlp + failover
+        API->>YTDLP: Cold-path re-extraction (lock + subprocess)
+        API->>Redis: Store fresh manifest
+        API-->>Client: Fresh manifest
+    end
+
+    opt Per-video threshold crossed
+        API->>Log: Append failure (videoId, IP, timestamp)
+        API->>Redis: Increment yt-dlp:failures:count
+    end
+
+    opt Global threshold crossed
+        API->>Admin: Notification + link to admin panel
+    end
+```
 
 </details>
 
@@ -425,7 +523,35 @@ sequenceDiagram
 6. For any video whose metadata changed: delete `manifest:{videoId}` and `yt-dlp:{videoId}` from `Redis` to force re-extraction on next play (stale manifests may reference outdated content).
 7. Log sync result: `{ synced, updated, unavailable, quotaUsed }`.
 
-**Notes:** Batch grouping should be shown explicitly — one API call per batch of 50, not one per video. The Redis eviction step (step 6) should be shown as a conditional branch (only for changed videos).
+```mermaid
+sequenceDiagram
+    participant Cron as CRON Scheduler
+    participant Sync as NestJS SyncService
+    participant API as YouTube Data API
+    participant DB as PostgreSQL
+    participant Redis
+
+    Cron->>Sync: Daily trigger (e.g. 02:00 UTC)
+    Sync->>DB: SELECT all video external_ids
+    Sync->>API: Batch videos.list (max 50 IDs per call)
+    API-->>Sync: Metadata batch
+
+    loop For each video in batch
+        Sync->>Sync: Compare with DB record
+        alt Changed
+            Sync->>DB: UPDATE title, thumbnail, duration, category
+            Sync->>Redis: DELETE manifest:{id} + yt-dlp:{id}
+        else 404 (deleted/privated)
+            Sync->>DB: Flag status = unavailable
+        end
+    end
+
+    Sync->>API: videoCategories.list (once)
+    API-->>Sync: Fresh categories
+    Sync->>DB: Upsert categories (idempotent)
+
+    Sync->>Sync: Log {synced, updated, unavailable, quotaUsed}
+```
 
 </details>
 
@@ -433,13 +559,12 @@ sequenceDiagram
 
 ## 5. Class & Entity Diagram
 
-The class diagram should be generated separately and saved under `diagrams/visual_content/`. Refer to the project-level class diagram in `KidsSafeHome_ClassDiagram.svg` as the baseline.
-
 | Diagram                                 | File                                          |
 | --------------------------------------- | --------------------------------------------- |
 | Entity / Class Diagram (Visual Content) | `diagrams/visual_content/06_class_entity.svg` |
 
-**Key entities and fields for this module:**
+<details>
+<summary><strong>Key entities and fields for this module</strong></summary>
 
 **Video**
 
@@ -460,6 +585,7 @@ The class diagram should be generated separately and saved under `diagrams/visua
 **SystemStatus** (or managed via Redis `yt-dlp:failures:count`)
 
 - `failures_count`, `last_failure_at`, `state` (`operational` | `degraded` | `down`)
+</details>
 
 ---
 
