@@ -118,7 +118,7 @@ The architecture around `yt-dlp` is designed for resilience: Redis caches manife
 
 ### 2.6 YouTube IFrame Player API (Alternative / Fallback reference)
 
-> **Note:** The IFrame Player API is **not** the primary approach. The system uses `yt-dlp` + DASH manifests, which bypasses the YouTube player entirely. This section is retained for reference only, in case the team evaluates a fallback to the IFrame approach.
+> **Note:** The IFrame Player API is **not** the primary approach. The system uses `yt-dlp` + DASH/HLS manifests, which bypasses the YouTube player entirely. This section is retained for reference only, in case the team evaluates a fallback to the IFrame approach.
 
 The IFrame API embeds a YouTube player via an `<iframe>` tag, controlled via JavaScript. It serves the YouTube-hosted player, which includes ads. Ad-free playback is not achievable through this approach.
 
