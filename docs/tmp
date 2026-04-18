@@ -1,4 +1,13 @@
-- One requirement I forgot is that the quota of the Youtube API should be somehow tracked and 
-the CRON jobs should support graceful failure in case of quota related issues. This is because 
-videos added by parents and admins also consume from the quota.
-- The current solution for handling the unavailability of yt-dlp is through the Redis counter
+- I want to modify the flow of failure: If a failure is reported by the front-end the manifest 
+is updated and saved to failover:${videoId} nothing gets incremented. If video proxying starts 
+failing then a specific key (maybe failures:${videoId}) gets incremented and all the keys of the 
+videoId get removed (manifeast, raw and failover) then yt-dlp is invoked again and entries are updated 
+(so cold start, without removing the failures key). If failures > threshold log the id somewhere 
+and increment the central yt-dlp failure tracker. If the tracker > threshold then flag ip change 
+for admin with appropriate instructions in case he receives too much notifications.
+- In case a side-car is not possible we can use the same potoken server container as the base
+- When switching IP addresses the script/application should check failures reported by the nest js 
+application meaning that both the script and the nest js app should have access to a common location 
+to save IP address failures
+- No direct changes to redis or a database are needed, there should be something in the admin 
+panel to allow for this
