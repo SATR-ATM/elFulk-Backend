@@ -587,6 +587,84 @@ sequenceDiagram
 - `failures_count`, `last_failure_at`, `state` (`operational` | `degraded` | `down`)
 </details>
 
+<details>
+<summary><strong>Diagram</strong></summary>
+
+```mermaid
+classDiagram
+    class Video {
+        +id: UUID (PK)
+        +external_id: String (YouTube)
+        +title: String
+        +thumbnail_url: String
+        +duration_seconds: Integer
+        +category_id: UUID (FK)
+        +status: Enum (available | unavailable)
+        +created_at: DateTime
+        +updated_at: DateTime
+    }
+
+    class Category {
+        +id: UUID (PK)
+        +external_id: String (YouTube)
+        +name: String
+        +name_ar: String
+        +icon_url: String
+        +updated_at: DateTime
+    }
+
+    class WatchProgress {
+        +id: UUID (PK)
+        +child_profile_id: UUID (FK)
+        +video_id: UUID (FK)
+        +last_position_seconds: Integer
+        +completed: Boolean
+        +updated_at: DateTime
+    }
+
+    class SearchHistory {
+        +id: UUID (PK)
+        +child_profile_id: UUID (FK)
+        +term: String
+        +searched_at: DateTime
+    }
+
+    class ManifestService {
+        <<service>>
+        +getManifest(videoId): MPD
+        +handleFailure(videoId, failedFormats)
+    }
+
+    class VideoService {
+        <<service>>
+    }
+
+    class SearchService {
+        <<service>>
+    }
+
+    class SyncService {
+        <<service>>
+        +runDailySync()
+    }
+
+    class ProxyService {
+        <<service>>
+    }
+
+    Video "1" --> "0..*" Category : belongs to
+    Video "1" --> "0..*" WatchProgress : has
+    ChildProfile "1" --> "0..*" WatchProgress : generates
+    ChildProfile "1" --> "0..*" SearchHistory : has
+    ChildProfile "1" --> "0..*" Video : receives recommendations
+
+    ManifestService ..> Video : uses
+    SyncService ..> Video : syncs
+    ProxyService ..> Video : fallback
+```
+
+</details>
+
 ---
 
 ## 6. External API & Integration Specifications
