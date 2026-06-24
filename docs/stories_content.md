@@ -26,11 +26,11 @@
 ## 1. Feature Overview
 
 **Feature:** Stories  
-**Goal:** Deliver curated, age-appropriate educational content (stories, videos, courses) safely to children on the المنزل الآمن platform.
+**Goal:** Deliver curated, age-appropriate educational content (stories, courses) safely to children on the المنزل الآمن platform.
 
 **Scope:**
-- Admins upload stories and associated media (images, videos, PDFs).
-- Children browse and read/view stories based on age group, complexity, and type.
+- Admins upload stories and associated media (images).
+- Children browse and read stories based on age group, complexity, and type.
 - Parents can assign stories manually (Chosen by Parent mode).
 - Content must be secure, optimized, and age-appropriate at all times.
 
@@ -42,8 +42,6 @@
 
 ---
 
-## 1. Entity Diagram
-
 ## 2. User Flow Analysis
 
 > Based on the provided flowchart. This section maps UI states to backend requirements.
@@ -51,7 +49,6 @@
 ![Entity Diagram](./img/4.png)
 
 ### Story Type Definitions
-
 
 | Type | Description | Backend Implication |
 |---|---|---|
@@ -101,9 +98,9 @@
 | `id` | `uuid` (PK) | Auto-generated |
 | `title` | `varchar(200)` | |
 | `description` | `text` | Short summary shown in list |
-| `content` | `text` | Full story body (or null if video/pdf) |
+| `content` | `text` | Full story body |
 | `ageGroup` | `enum` | `'3-5'`, `'6-8'`, `'9-11'`, `'12+'` |
-| `category` | `enum` | `'story'`, `'video'`, `'course'` |
+| `category` | `enum` | `'story'`, `'course'` |
 | `complexity` | `enum` | `'easy'`, `'medium'`, `'advanced'` |
 | `targetGender` | `enum` | `'all'`, `'male'`, `'female'` |
 | `storyType` | `enum` | `'default'`, `'age_escalation'`, `'parent_choice'` |
@@ -123,12 +120,11 @@
 | `storyId` | `uuid` (FK → Story.id) | Cascade delete |
 | `imageKitFileId` | `varchar(200)` | ImageKit's internal file ID |
 | `url` | `varchar(500)` | CDN delivery URL (unsigned base) |
-| `type` | `enum` | `'image'`, `'video'`, `'pdf'` |
-| `mimeType` | `varchar(100)` | e.g. `image/webp`, `video/mp4` |
+| `type` | `enum` | `'image'` |
+| `mimeType` | `varchar(100)` | e.g. `image/webp` |
 | `sizeBytes` | `integer` | File size at upload time |
-| `width` | `integer` | Nullable; pixels (images only) |
-| `height` | `integer` | Nullable; pixels (images only) |
-| `durationSeconds` | `float` | Nullable; video duration |
+| `width` | `integer` | Pixels |
+| `height` | `integer` | Pixels |
 | `altText` | `varchar(300)` | Accessibility description |
 | `sortOrder` | `integer` | Ordering within a story |
 | `createdAt` | `timestamp` | Auto |
@@ -144,23 +140,11 @@
 | `assignedAt` | `timestamp` | |
 | `completedAt` | `timestamp` | Nullable; set when child finishes |
 
-#### ReadingProgress *(Child progress tracking)*
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `uuid` (PK) | |
-| `childId` | `uuid` (FK → User.id) | |
-| `storyId` | `uuid` (FK → Story.id) | |
-| `progressPercent` | `integer` | 0–100 |
-| `lastReadAt` | `timestamp` | |
-| `isCompleted` | `boolean` | |
-
 ---
 
 ### 3.2 Entity Relationships
 
 ![Entity Diagram](./img/1.png)
-
 
 **Admin Client → Backend → ImageKit → Storage/CDN**
 
@@ -176,11 +160,11 @@
 **Key Principles:**
 - Media never passes through backend servers.
 - Only signed uploads are allowed.
+
 **Summary:**
 - One `User (admin)` authors many `Story` records.
 - One `Story` has many `MediaAsset` records (cascade delete).
 - One `User (parent)` can assign many Stories to many children via `AssignedStory`.
-- One `User (child)` has many `ReadingProgress` records, one per story.
 
 ---
 
@@ -191,7 +175,7 @@
    Admin creates story in admin panel → isPublished = false
 
 2. [Media Uploaded]
-   Admin uploads cover image + media assets directly to ImageKit
+   Admin uploads cover image + inline images directly to ImageKit
    Backend stores MediaAsset references (url, imageKitFileId, etc.)
 
 3. [Content Reviewed]
@@ -206,26 +190,21 @@
    Child opens Stories screen
    Backend returns filtered list (by ageGroup, complexity, gender, storyType)
 
-6. [Child Reads / Views Story]
-   Backend serves story metadata + signed media URLs
-   Frontend renders text / video / PDF viewer
-   ReadingProgress record created or updated
+6. [Child Reads Story]
+   Backend serves story metadata + signed image URLs
+   Frontend renders text content with images
 
-7. [Progress Tracked]
-   progressPercent updated as child scrolls or watches
-   isCompleted = true on finish
-
-8. [Story Assigned by Parent] (optional path)
+7. [Story Assigned by Parent] (optional path)
    Parent filters library → assigns story to child
    AssignedStory record created
    Story appears in child's "Assigned" section
 
-9. [Story Updated or Archived]
-   Admin edits content → new MediaAsset uploaded if media changes
+8. [Story Updated or Archived]
+   Admin edits content → new MediaAsset uploaded if images change
    Old ImageKit file deleted via API
    Story soft-deleted via deletedAt if archived
 
-10. [Soft Delete + Undo Window]
+9. [Soft Delete + Undo Window]
     deletedAt set → story hidden from all queries
     5-second TTL: if no undo received → permanently deleted (or kept as archived)
 ```
@@ -242,7 +221,6 @@
 ### 5.1 Admin Media Upload
 
 ![Entity Diagram](./img/2.png)
-
 
 ### 5.2 Child Content Delivery
 
@@ -307,7 +285,6 @@ ImageKit applies transformations via URL parameters — no extra storage needed:
 | Story cover thumbnail | `tr=w-400,h-300,c-fill,f-webp` | Resize + crop + convert to WebP |
 | Full-size story image | `tr=w-800,f-webp,q-85` | Resize + compress |
 | Blur placeholder | `tr=w-20,bl-6` | Tiny blurred preview for loading |
-| PDF first page preview | `tr=f-jpg,pg-1` | Render page 1 as image |
 
 **Lazy loading pattern:**
 1. Load 20px blurred thumbnail first.
@@ -319,22 +296,10 @@ ImageKit applies transformations via URL parameters — no extra storage needed:
 ```
 /stories/{storyId}/cover/        ← story cover images
 /stories/{storyId}/images/       ← inline page images
-/stories/{storyId}/videos/       ← video files
-/stories/{storyId}/documents/    ← PDF attachments
 ```
 
 ---
 
-## 7. Production Architecture
-Admin Panel (Content Upload) ↓
-
-Backend (Express API + Auth) ↓
-
-ImageKit (Upload + CDN + Optimization) ↓
-
-Database (Stories + Media Metadata) ↓
-
-Child Frontend (Content Consumption)
 ## 7. Security Protocols
 
 ### 7.1 Authentication & Authorization
@@ -470,16 +435,12 @@ IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_account
 | Media Type | Accepted MIME Types | Extensions |
 |---|---|---|
 | Image | `image/jpeg`, `image/png`, `image/webp` | `.jpg`, `.jpeg`, `.png`, `.webp` |
-| Video | `video/mp4` | `.mp4` |
-| Document | `application/pdf` | `.pdf` |
 
 ### 9.2 File Size Limits
 
 | Type | Max Size | Rationale |
 |---|---|---|
 | Image | 5 MB | Covers high-resolution illustrations |
-| Video | 20 MB | Short educational clips only |
-| PDF | 10 MB | Multi-page illustrated documents |
 
 ### 9.3 NestJS DTO Validation
 
@@ -487,14 +448,14 @@ IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_account
 // media-asset.dto.ts
 import { IsEnum, IsString, IsNumber, IsOptional, Max } from 'class-validator';
 
-export enum MediaType { IMAGE = 'image', VIDEO = 'video', PDF = 'pdf' }
+export enum MediaType { IMAGE = 'image' }
 
 export class CreateMediaAssetDto {
   @IsString() imageKitFileId: string;
   @IsString() url: string;
   @IsEnum(MediaType) type: MediaType;
   @IsString() mimeType: string;
-  @IsNumber() @Max(20 * 1024 * 1024) sizeBytes: number;
+  @IsNumber() @Max(5 * 1024 * 1024) sizeBytes: number;
   @IsOptional() @IsString() altText?: string;
 }
 ```
@@ -503,19 +464,15 @@ export class CreateMediaAssetDto {
 
 ```typescript
 // Validate before requesting upload token
-function validateFile(file: File, type: 'image' | 'video' | 'pdf'): void {
-  const limits = { image: 5, video: 20, pdf: 10 }; // MB
-  const allowed = {
-    image: ['image/jpeg', 'image/png', 'image/webp'],
-    video: ['video/mp4'],
-    pdf:   ['application/pdf'],
-  };
+function validateFile(file: File): void {
+  const maxSizeMB = 5;
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
-  if (!allowed[type].includes(file.type)) {
+  if (!allowedTypes.includes(file.type)) {
     throw new Error(`Invalid file type: ${file.type}`);
   }
-  if (file.size > limits[type] * 1024 * 1024) {
-    throw new Error(`File exceeds ${limits[type]}MB limit`);
+  if (file.size > maxSizeMB * 1024 * 1024) {
+    throw new Error(`File exceeds ${maxSizeMB}MB limit`);
   }
 }
 ```
@@ -548,12 +505,6 @@ src/
 ├── imagekit/
 │   ├── imagekit.module.ts
 │   └── imagekit.service.ts
-├── progress/
-│   ├── progress.module.ts
-│   ├── progress.controller.ts
-│   ├── progress.service.ts
-│   └── entities/
-│       └── reading-progress.entity.ts
 └── assignments/
     ├── assignments.module.ts
     ├── assignments.controller.ts
@@ -578,7 +529,7 @@ src/
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/stories` | Child/Parent | List stories (filtered by ageGroup) |
-| `GET` | `/stories/:id` | Child/Parent | Get story + signed media URLs |
+| `GET` | `/stories/:id` | Child/Parent | Get story + signed image URLs |
 | `GET` | `/stories/assigned` | Child | List stories assigned by parent |
 
 #### Media Upload
@@ -586,15 +537,8 @@ src/
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/media/upload-auth` | Admin | Get ImageKit signed upload params |
-| `POST` | `/stories/:id/media` | Admin | Register uploaded media asset |
-| `DELETE` | `/stories/:id/media/:mediaId` | Admin | Delete media (ImageKit + DB) |
-
-#### Progress
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `PATCH` | `/stories/:id/progress` | Child | Update reading progress |
-| `GET` | `/stories/:id/progress` | Child | Get own progress on story |
+| `POST` | `/stories/:id/media` | Admin | Register uploaded image asset |
+| `DELETE` | `/stories/:id/media/:mediaId` | Admin | Delete image (ImageKit + DB) |
 
 #### Assignments (Parent)
 
@@ -651,7 +595,7 @@ async findOne(id: string, user: User): Promise<StoryResponseDto> {
 ### Phase 1 — Foundation (Week 1–2)
 
 - [ ] Set up NestJS modules: `StoriesModule`, `MediaModule`, `ImageKitModule`
-- [ ] Define all TypeORM entities (`Story`, `MediaAsset`, `ReadingProgress`, `AssignedStory`)
+- [ ] Define all TypeORM entities (`Story`, `MediaAsset`, `AssignedStory`)
 - [ ] Write and run initial migrations
 - [ ] Implement `JwtAuthGuard` and `RolesGuard`
 - [ ] Create `ImageKitService` with `getAuthParameters()` and `getSignedUrl()`
@@ -660,7 +604,7 @@ async findOne(id: string, user: User): Promise<StoryResponseDto> {
 ### Phase 2 — Admin Story Management (Week 2–3)
 
 - [ ] `POST /stories` — create draft
-- [ ] `POST /stories/:id/media` — register media asset after direct upload
+- [ ] `POST /stories/:id/media` — register image asset after direct upload
 - [ ] `PATCH /stories/:id/publish` — publish story
 - [ ] `DELETE /stories/:id` — soft delete with `deletedAt`
 - [ ] Validate all DTOs with `class-validator`
@@ -669,8 +613,7 @@ async findOne(id: string, user: User): Promise<StoryResponseDto> {
 ### Phase 3 — Child Content Delivery (Week 3–4)
 
 - [ ] `GET /stories` — filtered list (ageGroup, complexity, gender, type)
-- [ ] `GET /stories/:id` — full story with signed media URLs
-- [ ] `PATCH /stories/:id/progress` — upsert `ReadingProgress`
+- [ ] `GET /stories/:id` — full story with signed image URLs
 - [ ] Apply ageGroup-based query guard (children only see matching content)
 
 ### Phase 4 — Parent Assignment Flow (Week 4–5)
@@ -716,4 +659,3 @@ async findOne(id: string, user: User): Promise<StoryResponseDto> {
 ---
 
 *Last updated: April 2026 — Stories Feature v2.0*
->>>>>>> b3499dd (Update stories_content.md)
