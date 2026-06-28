@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import * as supertestImport from 'supertest';
+const request: any = (supertestImport as unknown as any).default ?? supertestImport;
 import { DataSource } from 'typeorm';
 
 // ─────────────────────────────────────────────
