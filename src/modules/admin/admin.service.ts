@@ -26,7 +26,7 @@ export class AdminService {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
-  ) {}
+  ) { }
 
   async ensureSuperAdminExists(): Promise<void> {
     const superAdminExists = await this.adminRepository.exists({
@@ -129,6 +129,13 @@ export class AdminService {
     }
 
     return admin;
+  }
+
+  async findByEmailWithPassword(email: string): Promise<Admin | null> {
+    return this.adminRepository.findOne({
+      where: { email: email.toLowerCase().trim() },
+      select: ['id', 'email', 'password_hash', 'role', 'status'],
+    });
   }
 
   async updateProfile(

@@ -35,11 +35,20 @@ export class Parent {
   email: string;
 
   @ApiPropertyOptional()
-  @Column({ nullable: true, select: false })
-  password_hash: string | null;
+ @Column({
+  type: 'text',
+  nullable: true,
+  select: false,
+})
+password_hash: string | null;
+
 
   @ApiPropertyOptional()
-  @Column({ nullable: true, select: false })
+  @Column({
+    type: 'text',
+    nullable: true,
+    select: false,
+  })
   pin_hash: string | null;
 
   @ApiProperty({ default: false })
@@ -47,7 +56,10 @@ export class Parent {
   pin_activated: boolean;
 
   @ApiPropertyOptional()
-  @Column({ nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
   phone_number: string | null;
 
   @ApiProperty({ enum: AuthProvider })
@@ -59,8 +71,11 @@ export class Parent {
   auth_provider: AuthProvider;
 
   @ApiPropertyOptional()
-  @Column({ nullable: true })
-  external_subject_id: string | null;
+@Column({
+  type: 'varchar',
+  nullable: true,
+})
+external_subject_id: string | null;
 
   @ApiProperty({ default: false })
   @Column({ default: false })

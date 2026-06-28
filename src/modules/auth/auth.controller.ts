@@ -7,6 +7,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,7 +16,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/Login.dto';
+import { LoginDto } from '../auth/dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ActivatePinDto } from '../parent/dto/activate-pin.dto';
 import { ParentService } from '../parent/parent.service';
@@ -59,5 +60,24 @@ export class AuthController {
     @Body() dto: ActivatePinDto,
   ) {
     return this.parentService.activatePin(req.user.id, dto.pin);
+  }
+
+  @Post('admin/login')
+  @ApiOperation({ summary: 'Admin login with email and password' })
+  @ApiResponse({ status: 201, description: 'Returns JWT access token' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  adminLogin(@Body() dto: LoginDto) {
+    return this.authService.adminLogin(dto);
+  }
+
+  @Post('child-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a token to act as a child' })
+  async getChildToken(@Request() req: { user: { id: string; role: string } }, @Body('childId') childId: string) {
+    if (req.user.role !== 'parent') {
+      throw new UnauthorizedException();
+    }
+    return this.authService.getChildToken(req.user.id, childId);
   }
 }
