@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   Controller,
   Get,
@@ -35,6 +36,13 @@ export class ParentController {
   @ApiResponse({ status: 201, description: 'Parent created', type: Parent })
   @ApiResponse({ status: 400, description: 'Validation error' })
   create(@Body() dto: CreateParentDto): Promise<Parent> {
+    if (dto.password && !dto.password_hash) {
+      dto.password_hash = crypto
+        .createHash('sha256')
+        .update(dto.password)
+        .digest('hex');
+    }
+
     return this.parentService.create(dto);
   }
 

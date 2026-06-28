@@ -24,6 +24,11 @@ export class CreateParentDto {
   @IsOptional()
   password_hash?: string;
 
+  @ApiPropertyOptional({ description: 'Plaintext password for registration' })
+  @IsString()
+  @IsOptional()
+  password?: string;
+
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
