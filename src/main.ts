@@ -13,7 +13,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-
+  app.setGlobalPrefix('api/v1');
   const config = new DocumentBuilder()
     .setTitle('elFulk API Documentation')
     .setDescription('API Documentation for the elFulk project')
@@ -22,7 +22,8 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+
+  SwaggerModule.setup('api/doc', app, document);
 
   await app.get(AdminService).ensureSuperAdminExists();
   await app.listen(3000);

@@ -7,8 +7,6 @@
   <p><b>المنزل الآمن - الجزء الخلفي<b> (Backend)</p>
 </div>
 
-<div dir="rtl" align="right">
-
 ## نظرة عامة
 
 هذا المستودع يحتوي على هيكلة و code لمشروع **المنزل الآمن**.
@@ -33,6 +31,13 @@
 - إنشاء مستخدم تجريبي (Sample User) للتحقق من التدفق الأساسي
 - تفعيل التحقق على مستوى التطبيق عبر `ValidationPipe`
 
+* `UsersModule` — إنشاء وجلب المستخدمين
+* `ParentModule` — كيان الأبوين مع حقول المصادقة
+* `AdminModule` — كيان المدير مع الأدوار والصلاحيات
+* `ChildModule` — كيان الأبناء مرتبط بالأب
+* `AccessPolicyModule` — سياسات الاستخدام لكل طفل (CRUD كامل)
+* `AuthModule` — تسجيل الدخول بالبريد وكلمة المرور، إصدار JWT، نقطة `/auth/me` محمية
+
 🚧 قيد التنفيذ:
 
 - توسيع نماذج قاعدة البيانات (Entities)
@@ -45,17 +50,23 @@
 - نظام المصادقة (Auth)
 - واجهات API لباقي الدومينات
 - الإشعارات وإدارة المحتوى
-- النشر (Deployment)
+
+* نظام OTP
+* تدوير Refresh Tokens
+* تسجيل الدخول عبر Google OAuth
+* النشر (Deployment)
 
 ## ما هو موجود فعليًا الآن
 
-تم تنفيذ `UsersModule` مع:
 
-- كيان `Users` يحتوي على نوع المستخدم: `parent | child | admin`
-- إنشاء مستخدم جديد: `POST /Users`
-- جلب المستخدمين: `GET /Users`
-
-> ملاحظة: بقية النماذج المذكورة في الخطة (Parent, Child, AccessPolicy, Sessions, ActivityLog, Notification, Content) ما زالت ضمن مراحل التنفيذ القادمة.
+| Module               | Endpoints                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UsersModule`        | `POST /Users` — `GET /Users`                                                                                                                                         |
+| `ParentModule`       | `POST /parents` — `GET /parents` — `GET /parents/:id` — `PATCH /parents/:id` — `DELETE /parents/:id`                                                              |
+| `AdminModule`        | `POST /admins` — `GET /admins` — `GET /admins/:id` — `PATCH /admins/:id` — `PATCH /admins/:id/role-status` — `PATCH /admins/:id/approve` — `DELETE /admins/:id` |
+| `ChildModule`        | `POST /children` — `GET /children` — `GET /children/:id` — `PATCH /children/:id` — `DELETE /children/:id`                                                         |
+| `AccessPolicyModule` | `POST /access-policies` — `GET /access-policies` — `GET /access-policies/:id` — `PATCH /access-policies/:id` — `DELETE /access-policies/:id`                      |
+| `AuthModule`         | `POST /auth/login` — `GET /auth/me` — `POST /auth/activate-pin`                                                                                                   |
 
 ## المتطلبات
 
@@ -67,17 +78,11 @@
 
 1. تثبيت الاعتمادات:
 
-```bash
-npm install
-```
+```bash npm install
+```2. إعداد متغيرات البيئة:
 
-2. إعداد متغيرات البيئة:
-
-```bash
-cp .env.example .env
-```
-
-ثم عدّل القيم داخل `.env` مثل:
+```bashcp .env.example .env
+```ثم عدّل القيم داخل `.env` مثل:
 
 - `DB_HOST`
 - `DB_PORT`
@@ -89,28 +94,19 @@ cp .env.example .env
 
 3. إنشاء قاعدة البيانات (مثال):
 
-```sql
-CREATE DATABASE parental_control_db;
-```
+```sqlCREATE DATABASE parental_control_db;
+```4. تشغيل المشروع:
 
-4. تشغيل المشروع:
-
-```bash
-npm run start:dev
-```
-
-الخادم يعمل افتراضيًا على:
+```bashnpm run start:dev
+```الخادم يعمل افتراضيًا على:
 `http://localhost:3000`
 
 ## التشغيل عبر Docker
 
 من داخل مجلد المشروع:
 
-```bash
-docker compose -f docker/docker-compose.yml up --build
-```
-
-الخدمات الحالية:
+```bashdocker compose -f docker/docker-compose.yml up --build
+```الخدمات الحالية:
 
 - `api`: تطبيق NestJS على المنفذ `3000`
 - `db`: PostgreSQL 16
@@ -121,12 +117,7 @@ docker compose -f docker/docker-compose.yml up --build
 
 ## الأوامر المهمة
 
-```bash
-# Build
-npm run build
-
-# تشغيل
-npm run start
+```bash#npm#npm run start
 npm run start:dev
 npm run start:prod
 
@@ -138,17 +129,42 @@ npm run format
 npm run test
 npm run test:e2e
 npm run test:cov
-```
+```## هيكلة المشروع الحالية
 
-## هيكلة المشروع الحالية
-
-<div dir="ltr" align="left">
-
-```text
-src/
+```textsrc/
 ├── app.module.ts
 ├── main.ts
 └── modules/
+    ├── access-policy/
+    │   ├── dto/
+    │   ├── access-policy.controller.ts
+    │   ├── access-policy.entity.ts
+    │   ├── access-policy.module.ts
+    │   └── access-policy.service.ts
+    ├── admin/
+    │   ├── dto/
+    │   ├── admin.controller.ts
+    │   ├── admin.entity.ts
+    │   ├── admin.module.ts
+    │   └── admin.service.ts
+    ├── auth/
+    │   ├── dto/
+    │   ├── guards/
+    │   ├── strategies/
+    │   ├── auth.controller.ts
+    │   ├── auth.module.ts
+    │   └── auth.service.ts
+    ├── child/
+    │   ├── dto/
+    │   ├── child.controller.ts
+    │   ├── child.entity.ts
+    │   ├── child.module.ts
+    │   └── child.service.ts
+    ├── parent/
+    │   ├── dto/
+    │   ├── parent.entity.ts
+    │   ├── parent.module.ts
+    │   └── parent.service.ts
     └── user/
         ├── dto/
         ├── user.controller.ts
@@ -159,11 +175,10 @@ docker/
 ├── docker-compose.yml
 ├── Dockerfile
 └── .env.docker
-```
+```## خارطة الدومين المستهدفة
 
-</div>
-## خارطة الدومين المستهدفة
 النماذج الأساسية المستهدفة في النظام:
+
 - User
 - Parent
 - Child
@@ -186,12 +201,9 @@ docker/
 
 يمنع استخدام الأوامر التالية:
 
-```bash
-npm install --force
+```bashnpm install --force
 npm install --legacy-peer-deps
-```
-
-لأنها قد تسبب:
+```لأنها قد تسبب:
 
 - مشاكل في الاعتمادات
 - أخطاء خفية
@@ -210,5 +222,3 @@ npm install --legacy-peer-deps
 ## مصادر مفيدة
 
 - NestJS Documentation: https://docs.nestjs.com
-
-</div>

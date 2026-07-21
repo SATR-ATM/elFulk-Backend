@@ -7,7 +7,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SessionModule } from './modules/session/session.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AccessPolicyModule } from './modules/access-policy/access-policy.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ChildModule } from './modules/child/child.module';
+import { ParentModule } from './modules/parent/parent.module';
 
 @Module({
   imports: [
@@ -30,7 +33,10 @@ import { AdminModule } from './modules/admin/admin.module';
     UsersModule,
     AuthModule,
     SessionModule,
+    AccessPolicyModule,
     AdminModule,
+    ChildModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
