@@ -34,7 +34,6 @@ export class StoryService {
     const query = this.storyRepository.createQueryBuilder('story');
     query.where('story.deleted_at IS NULL');
 
-    // Phase 3: Apply ageGroup-based query guard (children only see matching content)
     if (user?.role === 'child' && user?.ageGroup) {
       query.andWhere('story.age_group = :ageGroup', {
         ageGroup: user.ageGroup,
@@ -182,10 +181,7 @@ export class StoryService {
     return this.storyRepository.save(story);
   }
 
-  async registerMediaAsset(
-    storyId: string,
-    attributes: RegisterStoryMediaDto,
-  ) {
+  async registerMediaAsset(storyId: string, attributes: RegisterStoryMediaDto) {
     await this.findOne(storyId);
     return this.mediaService.createAsset({
       ...attributes,
