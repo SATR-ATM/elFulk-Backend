@@ -26,7 +26,10 @@ export class CreateChildDto {
   @IsNotEmpty()
   date_of_birth: string;
 
-  @ApiPropertyOptional({ description: 'Gender of the child', example: 'female' })
+  @ApiPropertyOptional({
+    description: 'Gender of the child',
+    example: 'female',
+  })
   @IsOptional()
   @IsString()
   gender?: string;

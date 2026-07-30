@@ -19,7 +19,10 @@ export class AccessPolicyController {
 
   @Post()
   @ApiOperation({ summary: 'Create access policy' })
-  @ApiResponse({ status: 201, description: 'Access policy created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Access policy created successfully',
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   create(@Body() dto: CreateAccessPolicyDto) {
     return this.service.create(dto);
@@ -42,7 +45,10 @@ export class AccessPolicyController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update access policy' })
-  @ApiResponse({ status: 200, description: 'Access policy updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access policy updated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Access policy not found' })
   update(@Param('id') id: string, @Body() dto: UpdateAccessPolicyDto) {
@@ -51,7 +57,10 @@ export class AccessPolicyController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete access policy' })
-  @ApiResponse({ status: 200, description: 'Access policy deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access policy deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Access policy not found' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);

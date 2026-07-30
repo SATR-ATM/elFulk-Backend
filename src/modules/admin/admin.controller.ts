@@ -18,6 +18,8 @@ import {
   ApiBadRequestResponse,
   ApiBody,
 } from '@nestjs/swagger';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { auth } from '../../auth';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
@@ -43,8 +45,11 @@ export class AdminController {
   @ApiBadRequestResponse({
     description: 'Validation failed or email is already in use.',
   })
-  create(@Body() createAdminDto: CreateAdminDto): Promise<Admin> {
-    return this.adminService.create(createAdminDto);
+  create(
+    @Session() session: UserSession<typeof auth>,
+    @Body() createAdminDto: CreateAdminDto,
+  ): Promise<Admin> {
+    return this.adminService.create(session.user.id, createAdminDto);
   }
 
   @Get()

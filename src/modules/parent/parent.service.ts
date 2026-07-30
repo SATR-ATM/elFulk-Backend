@@ -3,11 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { Parent } from './parent.entity';
+import { Admin } from '../admin/admin.entity';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
 
@@ -16,27 +18,49 @@ export class ParentService {
   constructor(
     @InjectRepository(Parent)
     private readonly repo: Repository<Parent>,
+    @InjectRepository(Admin)
+    private readonly adminRepo: Repository<Admin>,
   ) {}
 
   async findById(id: string): Promise<Parent> {
-    const parent = await this.repo.findOne({ where: { id } });
+    const parent = await this.repo.findOne({
+      where: { id },
+      relations: ['user'],
+    });
     if (!parent) {
       throw new NotFoundException(`Parent with id ${id} not found`);
     }
     return parent;
   }
 
-  async findByEmail(email: string): Promise<Parent | null> {
-    return await this.repo
-      .createQueryBuilder('parent')
-      .addSelect('parent.password_hash')
-      .addSelect('parent.pin_hash')
-      .where('parent.email = :email', { email })
-      .getOne();
+  async findByUserId(userId: string): Promise<Parent> {
+    const parent = await this.repo.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
+    if (!parent) {
+      throw new NotFoundException(`Parent with user id ${userId} not found`);
+    }
+    return parent;
   }
 
-  async create(dto: CreateParentDto): Promise<Parent> {
-    const parent = this.repo.create(dto);
+  async create(userId: string, dto: CreateParentDto): Promise<Parent> {
+    const existingParent = await this.repo.findOne({ where: { userId } });
+    if (existingParent) {
+      throw new ConflictException('User cannot be registered as a parent');
+    }
+
+    const existingAdmin = await this.adminRepo.findOne({ where: { userId } });
+    if (existingAdmin) {
+      throw new ConflictException('User cannot be registered as a parent');
+    }
+
+    const parent = this.repo.create({
+      userId,
+      username: dto.username,
+      pin_hash: dto.pin_hash,
+      phone_number: dto.phone_number,
+    });
     return await this.repo.save(parent);
   }
 

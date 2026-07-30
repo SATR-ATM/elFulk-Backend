@@ -1,4 +1,12 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateAdminDto } from './create-admin.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateAdminDto extends PartialType(CreateAdminDto) {}
+export class UpdateAdminDto {
+  @ApiPropertyOptional()
+  first_name?: string;
+
+  @ApiPropertyOptional()
+  last_name?: string;
+
+  @ApiPropertyOptional()
+  email?: string;
+}

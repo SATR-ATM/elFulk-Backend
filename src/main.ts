@@ -2,11 +2,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AdminService } from './modules/admin/admin.service';
+import { dataSource } from './typeorm/data-source';
 
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  await dataSource.initialize();
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
 
   app.useGlobalPipes(
     new ValidationPipe({

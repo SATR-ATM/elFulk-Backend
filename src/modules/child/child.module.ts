@@ -6,10 +6,7 @@ import { ChildController } from './child.controller';
 import { ParentModule } from '../parent/parent.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Child]),
-    ParentModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Child]), ParentModule],
   controllers: [ChildController],
   providers: [ChildService],
   exports: [ChildService],

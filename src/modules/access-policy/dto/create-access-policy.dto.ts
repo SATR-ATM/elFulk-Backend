@@ -1,4 +1,11 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateAccessPolicyDto {
@@ -7,7 +14,9 @@ export class CreateAccessPolicyDto {
   @IsNotEmpty()
   child_id: string;
 
-  @ApiProperty({ description: 'Bitmask representing allowed days of the week (0-127)' })
+  @ApiProperty({
+    description: 'Bitmask representing allowed days of the week (0-127)',
+  })
   @IsInt()
   @IsNotEmpty()
   day_of_week_bitmask: number;
@@ -17,7 +26,9 @@ export class CreateAccessPolicyDto {
   @IsOptional()
   weekly_limit_minutes?: number;
 
-  @ApiPropertyOptional({ description: 'Start of allowed usage time (HH:MM:SS)' })
+  @ApiPropertyOptional({
+    description: 'Start of allowed usage time (HH:MM:SS)',
+  })
   @IsString()
   @IsOptional()
   time_allowed_start_time?: string;
@@ -32,7 +43,10 @@ export class CreateAccessPolicyDto {
   @IsOptional()
   max_app_rating?: number;
 
-  @ApiPropertyOptional({ description: 'Whether the lock is enabled', default: false })
+  @ApiPropertyOptional({
+    description: 'Whether the lock is enabled',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   lock_enabled?: boolean;

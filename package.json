@@ -18,9 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "db:auth:generate": "npx auth generate -y",
     "prepare": "husky"
   },
   "dependencies": {
+    "@hedystia/better-auth-typeorm": "^1.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -30,7 +32,8 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/typeorm": "^11.0.0",
-    "bcrypt": "^6.0.0",
+    "@thallesp/nestjs-better-auth": "^2.7.0",
+    "better-auth": "^1.6.24",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "dotenv": "^17.3.1",
@@ -51,12 +54,12 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
-    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "auth": "^1.6.24",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -74,6 +77,11 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
+  "overrides": {
+    "@hedystia/better-auth-typeorm": {
+      "typeorm": "$typeorm"
+    }
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
@@ -89,7 +97,13 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@thallesp/nestjs-better-auth$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^better-auth$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^better-auth/(.*)$": "<rootDir>/../test/mocks/better-auth-mock",
+      "^@hedystia/better-auth-typeorm$": "<rootDir>/../test/mocks/better-auth-mock"
+    }
   },
   "lint-staged": {
     "*.{ts,js,json,md}": [

@@ -1,0 +1,10 @@
+# TypeORM Schema Changes - 2026-07-24T15:25:24.182Z
+
+- Updated entity: entities/User.ts
+
+- Updated entity: entities/Session.ts
+
+- Updated entity: entities/Account.ts
+
+- Updated entity: entities/Verification.ts
+

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 import { UsersModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
@@ -12,6 +13,7 @@ import { ParentModule } from './modules/parent/parent.module';
 import { StoriesModule } from './modules/story/story.module';
 import { MediaModule } from './modules/media/media.module';
 import { ImageKitModule } from './modules/imagekit/imagekit.module';
+import { auth } from './auth';
 
 @Module({
   imports: [
@@ -28,6 +30,14 @@ import { ImageKitModule } from './modules/imagekit/imagekit.module';
       database: process.env.TYPEORM_DATABASE ?? 'elFulk',
       autoLoadEntities: true,
       synchronize: process.env.TYPEORM_SYNC === 'true',
+    }),
+    BetterAuthModule.forRoot({
+      auth,
+      disableGlobalAuthGuard: false,
+      bodyParser: {
+        json: { limit: '2mb' },
+        urlencoded: { limit: '2mb', extended: true },
+      },
     }),
     UsersModule,
     AuthModule,
