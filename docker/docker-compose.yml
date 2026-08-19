@@ -8,13 +8,13 @@ services:
     env_file:
       - .env.docker
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - ..:/app
       - /app/node_modules
     depends_on:
       - db
-    command: npm run start:dev
+    command: pnpm run start:dev
 
   db:
     image: postgres:16
