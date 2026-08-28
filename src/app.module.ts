@@ -6,6 +6,8 @@ import { UsersModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SessionModule } from './modules/session/session.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AccessPolicyModule } from './modules/access-policy/access-policy.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ChildModule } from './modules/child/child.module';
@@ -14,6 +16,8 @@ import { auth } from './auth';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
+
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -38,6 +42,7 @@ import { auth } from './auth';
     }),
     UsersModule,
     AuthModule,
+    SessionModule,
     AccessPolicyModule,
     AdminModule,
     ChildModule,

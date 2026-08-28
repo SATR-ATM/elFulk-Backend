@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
+import { Session } from '../session/session.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum UsersType {
@@ -76,4 +78,8 @@ export class Users {
   })
   @Column({ nullable: true })
   last_login: Date;
+
+  @ApiProperty({ type: () => [Session] })
+  @OneToMany(() => Session, (session) => session.child)
+  sessions: Session[];
 }
