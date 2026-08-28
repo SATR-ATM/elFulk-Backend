@@ -1,10 +1,9 @@
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AdminService } from './modules/admin/admin.service';
 import { dataSource } from './typeorm/data-source';
-
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   await dataSource.initialize();
@@ -16,10 +15,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
   app.setGlobalPrefix('api/v1');
+
   const config = new DocumentBuilder()
-    .setTitle('Admin API')
-    .setDescription('Admin management system')
+    .setTitle('ElFulk API')
+    .setDescription('API documentation')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -32,4 +33,5 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
+
 void bootstrap();
