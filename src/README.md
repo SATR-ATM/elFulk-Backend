@@ -55,6 +55,26 @@ npm run start:dev
 docker compose -f docker/docker-compose.yml up --build
 ```
 
+## Admin Seed (Sample Admin Accounts)
+
+To quickly test the current admin workflow without manual database inserts, run:
+
+```bash
+npm run seed:admin
+```
+
+The seed is idempotent — running it multiple times will not create duplicate accounts.
+
+**Password for all seeded accounts:** `Password123!`
+
+| Email                            | Role        | Status                           |
+| -------------------------------- | ----------- | -------------------------------- |
+| `superadmin@seed.local`          | SUPER_ADMIN | ACTIVE                           |
+| `moderator.active@seed.local`    | MODERATOR   | ACTIVE (approved by SUPER_ADMIN) |
+| `moderator.pending@seed.local`   | MODERATOR   | PENDING                          |
+| `moderator.rejected@seed.local`  | MODERATOR   | REJECTED                         |
+| `moderator.suspended@seed.local` | MODERATOR   | SUSPENDED                        |
+
 ## Team Tasks (Next Steps)
 
 1. Decide inheritance strategy for `User` -> `Parent/Child/Admin`.
