@@ -157,7 +157,7 @@ the workflow below.
 ### Application entities
 
 | Entity   | Table    | File                                  | Link to User                  |
-| -------- | -------- | ------------------------------------- | ----------------------------- |
+| -------- | -------- | ------------------------------------- | ----------------------------- | -------------------------------------------- |
 | `Parent` | `parent` | `src/modules/parent/parent.entity.ts` | `userId` → `user.id` (unique) | Has its own `username` column                |
 | `Admin`  | `admins` | `src/modules/admin/admin.entity.ts`   | `userId` → `user.id` (unique) | Parent-only field; admins have no `username` |
 | `Admin`  | `admins` | `src/modules/admin/admin.entity.ts`   | `userId` → `user.id` (unique) |

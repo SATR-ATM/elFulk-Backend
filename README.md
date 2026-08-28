@@ -1,88 +1,98 @@
-<p align="center">
-  <img src="https://github.com/SATR-ATM/.github/blob/main/assets/banner.png?raw=true" alt="SafeHome Banner" width="100%" />
-</p>
+# elFulk Backend
 
-<div align="center">
-  <h1>SafeHome Backend (elFulk-Backend)</h1>
-  <p><b>المنزل الآمن - الجزء الخلفي<b> (Backend)</p>
-</div>
+A NestJS backend for the elFulk story platform, built for story upload, child content delivery, parent assignments, and cleanup.
 
-## نظرة عامة
+## Project Overview
 
-هذا المستودع يحتوي على هيكلة و code لمشروع **المنزل الآمن**.
-الهدف هو بناء نظام قوي وآمن لإدارة الرقابة الأبوية، حسابات المستخدمين، وتتبع الأنشطة.
+This repository contains the backend implementation for a story platform supporting:
 
-التقنيات المستخدمة حاليًا:
+- admin story creation and media upload
+- signed media delivery via ImageKit
+- age-group filtered child story delivery
+- parent assignment workflows
+- JWT authentication and role-based access control
+- tests for API flows and guards
 
-- NestJS
-- TypeScript
-- PostgreSQL
-- TypeORM
-- Docker Compose
+## Phase Roadmap
 
-## حالة المشروع
+### Phase 1 — Foundation (Week 1–2)
 
-✅ مكتمل:
+- Set up NestJS modules: `StoriesModule`, `MediaModule`, `ImageKitModule`
+- Define TypeORM entities: `Story`, `MediaAsset`, `AssignedStory`
+- Write and run initial migrations
+- Implement `JwtAuthGuard` and `RolesGuard`
+- Create `ImageKitService` with `getAuthParameters()` and `getSignedUrl()`
+- Add `GET /media/upload-auth`
 
-- تهيئة مشروع NestJS
-- إعداد ESLint و Prettier و Husky
-- ربط قاعدة البيانات PostgreSQL عبر TypeORM
-- بناء أول Module فعلي: `users`
-- إنشاء مستخدم تجريبي (Sample User) للتحقق من التدفق الأساسي
-- تفعيل التحقق على مستوى التطبيق عبر `ValidationPipe`
+### Phase 2 — Admin Story Management (Week 2–3)
 
-* `UsersModule` — إنشاء وجلب المستخدمين
-* `ParentModule` — كيان الأبوين مع حقول المصادقة
-* `AdminModule` — كيان المدير مع الأدوار والصلاحيات
-* `ChildModule` — كيان الأبناء مرتبط بالأب
-* `AccessPolicyModule` — سياسات الاستخدام لكل طفل (CRUD كامل)
-* `AuthModule` — تسجيل الدخول بالبريد وكلمة المرور، إصدار JWT، نقطة `/auth/me` محمية
+- `POST /stories` — create draft stories
+- `POST /stories/:id/media` — register image asset after direct upload
+- `PATCH /stories/:id/publish` — publish stories
+- `DELETE /stories/:id` — soft delete with `deleted_at`
+- Validate DTOs using `class-validator`
+- Add integration tests for upload and story creation flow
 
-🚧 قيد التنفيذ:
+### Phase 3 — Child Content Delivery (Week 3–4)
 
-- توسيع نماذج قاعدة البيانات (Entities)
-- إضافة العلاقات بين الجداول
-- تقسيم الدومين إلى Modules إضافية
-- بقية الفريق سيكمل الوحدات المتبقية تمهيدًا لبناء نظام المصادقة (Auth)
+- `GET /stories` — filtered list by `ageGroup`, `complexity`, `gender`, `type`
+- `GET /stories/:id` — full story details with signed media URLs
+- Apply age-group access rules so children only see matching content
 
-⏳ مخطط لاحقًا:
+### Phase 4 — Parent Assignment Flow (Week 4–5)
 
-- نظام المصادقة (Auth)
-- واجهات API لباقي الدومينات
-- الإشعارات وإدارة المحتوى
+- `POST /assignments` — parent assigns story to child
+- `GET /stories/assigned` — child assigned story list
+- Filter assigned stories by `storyType = 'parent_choice'`
+- Verify parent-child relationship before assignment
 
-* نظام OTP
-* تدوير Refresh Tokens
-* تسجيل الدخول عبر Google OAuth
-* النشر (Deployment)
+### Phase 5 — Optimization & Security Hardening (Week 5–6)
 
-## ما هو موجود فعليًا الآن
+- Add response caching for public story lists
+- Add `DELETE /stories/:id/media/:mediaId` to remove media from ImageKit and DB
+- Add global rate limiting with `@nestjs/throttler`
+- Enable `helmet`, `cors`, and global `ValidationPipe`
+- Audit endpoint guards and security policies
+- Load test media delivery and story access
 
+### Phase 6 — QA & Launch (Week 6–7)
 
-| Module               | Endpoints                                                                                                                                                             |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UsersModule`        | `POST /Users` — `GET /Users`                                                                                                                                         |
-| `ParentModule`       | `POST /parents` — `GET /parents` — `GET /parents/:id` — `PATCH /parents/:id` — `DELETE /parents/:id`                                                              |
-| `AdminModule`        | `POST /admins` — `GET /admins` — `GET /admins/:id` — `PATCH /admins/:id` — `PATCH /admins/:id/role-status` — `PATCH /admins/:id/approve` — `DELETE /admins/:id` |
-| `ChildModule`        | `POST /children` — `GET /children` — `GET /children/:id` — `PATCH /children/:id` — `DELETE /children/:id`                                                         |
-| `AccessPolicyModule` | `POST /access-policies` — `GET /access-policies` — `GET /access-policies/:id` — `PATCH /access-policies/:id` — `DELETE /access-policies/:id`                      |
-| `AuthModule`         | `POST /auth/login` — `GET /auth/me` — `POST /auth/activate-pin`                                                                                                   |
+- Add end-to-end tests for admin upload → child read flows
+- Test cross-age-group access and restrictions
+- Review signed URL expiry policies
+- Document API with Swagger
+- Prepare staging and UAT deployment
 
-## المتطلبات
+## Current Features
 
-- Node.js **20+** (مطابق لصورة Docker الحالية)
+- JWT authentication and role-based authorization
+- Story creation, publishing, soft deletion
+- Media registration and signed URL delivery
+- Child story filtering by age group and content metadata
+- Parent assignment workflows
+- Guarded API endpoints for admin/parent/child roles
+
+## Requirements
+
+- Node.js 20+
 - npm
-- PostgreSQL 16+ (أو استخدام Docker Compose)
+- PostgreSQL 16+ or Docker Compose
 
-## التشغيل محليًا
+## Local Setup
 
-1. تثبيت الاعتمادات:
+1. Install dependencies:
 
-```bash npm install
-```2. إعداد متغيرات البيئة:
+```bash
+npm install
+```
 
-```bashcp .env.example .env
-```ثم عدّل القيم داخل `.env` مثل:
+2. Copy environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Configure `.env` values, including:
 
 - `DB_HOST`
 - `DB_PORT`
@@ -92,133 +102,84 @@
 - `TYPEORM_SYNC`
 - `JWT_SECRET`
 
-3. إنشاء قاعدة البيانات (مثال):
+4. Create the database manually if needed:
 
-```sqlCREATE DATABASE parental_control_db;
-```4. تشغيل المشروع:
+```sql
+CREATE DATABASE elfulk_backend;
+```
 
-```bashnpm run start:dev
-```الخادم يعمل افتراضيًا على:
-`http://localhost:3000`
+5. Run the application:
 
-## التشغيل عبر Docker
+```bash
+npm run start:dev
+```
 
-من داخل مجلد المشروع:
+Open `http://localhost:3000`.
 
-```bashdocker compose -f docker/docker-compose.yml up --build
-```الخدمات الحالية:
+## Docker
 
-- `api`: تطبيق NestJS على المنفذ `3000`
-- `db`: PostgreSQL 16
+Run with Docker Compose:
 
-ملف البيئة الخاص بـ Docker:
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
 
-- `docker/.env.docker`
+Services:
 
-## الأوامر المهمة
+- `api` — NestJS backend on port `3000`
+- `db` — PostgreSQL
 
-```bash#npm#npm run start
+## Testing
+
+Run all tests:
+
+```bash
+npm test --silent
+```
+
+Run e2e flow:
+
+```bash
+npm run test:e2e -- test/admin-child-flow.e2e-spec.ts --runInBand
+```
+
+Run lint:
+
+```bash
+npm run lint
+```
+
+## Useful Commands
+
+```bash
+npm run start
 npm run start:dev
 npm run start:prod
-
-# الفحص والجودة
 npm run lint
 npm run format
-
-# الاختبارات
 npm run test
 npm run test:e2e
 npm run test:cov
-```## هيكلة المشروع الحالية
+```
 
-```textsrc/
+## Project Structure
+
+```text
+src/
 ├── app.module.ts
 ├── main.ts
 └── modules/
     ├── access-policy/
-    │   ├── dto/
-    │   ├── access-policy.controller.ts
-    │   ├── access-policy.entity.ts
-    │   ├── access-policy.module.ts
-    │   └── access-policy.service.ts
     ├── admin/
-    │   ├── dto/
-    │   ├── admin.controller.ts
-    │   ├── admin.entity.ts
-    │   ├── admin.module.ts
-    │   └── admin.service.ts
     ├── auth/
-    │   ├── dto/
-    │   ├── guards/
-    │   ├── strategies/
-    │   ├── auth.controller.ts
-    │   ├── auth.module.ts
-    │   └── auth.service.ts
     ├── child/
-    │   ├── dto/
-    │   ├── child.controller.ts
-    │   ├── child.entity.ts
-    │   ├── child.module.ts
-    │   └── child.service.ts
     ├── parent/
-    │   ├── dto/
-    │   ├── parent.entity.ts
-    │   ├── parent.module.ts
-    │   └── parent.service.ts
+    ├── media/
+    ├── story/
+    ├── imagekit/
     └── user/
-        ├── dto/
-        ├── user.controller.ts
-        ├── user.entity.ts
-        ├── user.module.ts
-        └── user.service.ts
-docker/
-├── docker-compose.yml
-├── Dockerfile
-└── .env.docker
-```## خارطة الدومين المستهدفة
+```
 
-النماذج الأساسية المستهدفة في النظام:
+## Notes
 
-- User
-- Parent
-- Child
-- Admin
-- AccessPolicy
-- Session
-- ActivityLog
-- Notification
-- Content
-
-العلاقات المتوقعة:
-
-- Parent -> Children
-- Child -> AccessPolicy
-- Child -> Sessions -> ActivityLogs
-- User -> Notifications
-- Admin -> Content
-
-## تنبيه مهم
-
-يمنع استخدام الأوامر التالية:
-
-```bashnpm install --force
-npm install --legacy-peer-deps
-```لأنها قد تسبب:
-
-- مشاكل في الاعتمادات
-- أخطاء خفية
-- أعطال مستقبلية
-
-عند وجود تعارض، يتم إصلاحه بشكل يدوي وصحيح.
-
-## المساهمة
-
-نرحب بالمساهمة في التطوير، الاختبارات، التوثيق، وتحسين التصميم المعماري.
-
-ابدأ من دليل المساهمة:
-
-- https://github.com/SATR-ATM/.github/blob/main/profile/CONTRIBUTING.md
-
-## مصادر مفيدة
-
-- NestJS Documentation: https://docs.nestjs.com
+This README reflects the full phase roadmap from foundation through QA and launch, with a focus on story upload, child delivery, parent assignments, and cleanup.

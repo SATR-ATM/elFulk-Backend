@@ -54,6 +54,7 @@ export class Users {
   @Column({
     type: 'enum',
     enum: UsersType,
+    default: UsersType.PARENT,
   })
   type: UsersType;
 

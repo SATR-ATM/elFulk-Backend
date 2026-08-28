@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   Controller,
   Get,
@@ -8,38 +9,50 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
-import { auth } from '../../auth';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ParentService } from './parent.service';
 import { CreateParentDto } from './dto/create-parent.dto';
 import { UpdateParentDto } from './dto/update-parent.dto';
+import { ActivatePinDto } from './dto/activate-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
 import { Parent } from './parent.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('parents')
 @Controller('parents')
 export class ParentController {
   constructor(private readonly parentService: ParentService) {}
-
   @Post()
-  @ApiOperation({ summary: 'Link a Parent record to the authenticated user' })
+  @ApiOperation({ summary: 'Create a parent account' })
   @ApiResponse({ status: 201, description: 'Parent created', type: Parent })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  async create(
-    @Session() session: UserSession<typeof auth>,
-    @Body() dto: CreateParentDto,
-  ): Promise<Parent> {
-    return this.parentService.create(session.user.id, dto);
+  create(@Body() dto: CreateParentDto): Promise<Parent> {
+    if (dto.password && !dto.password_hash) {
+      dto.password_hash = crypto
+        .createHash('sha256')
+        .update(dto.password)
+        .digest('hex');
+    }
+
+    return this.parentService.create(dto);
   }
 
   @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated parent' })
   @ApiResponse({ status: 200, description: 'Parent profile', type: Parent })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMe(@Session() session: UserSession<typeof auth>): Promise<Parent> {
-    return this.parentService.findByUserId(session.user.id);
+  getMe(@Request() req: { user: { id: string } }): Promise<Parent> {
+    return this.parentService.findById(req.user.id);
   }
 
   @Get(':id')
@@ -50,31 +63,43 @@ export class ParentController {
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Parent> {
     return this.parentService.findById(id);
   }
-
+  
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update parent (partial)' })
   @ApiParam({ name: 'id', description: 'Parent UUID' })
   @ApiResponse({ status: 200, description: 'Parent updated', type: Parent })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Parent not found' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateParentDto,
   ): Promise<Parent> {
     return this.parentService.update(id, dto);
   }
-
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activate parent mode with a PIN' })
+  @ApiResponse({ status: 200, description: 'Parent mode activated' })
+  @ApiResponse({ status: 400, description: 'Already activated or invalid PIN' })
+  activatePin(
+    @Request() req: { user: { id: string } },
+    @Body() dto: ActivatePinDto,
+  ): Promise<{ message: string }> {
+    return this.parentService.activatePin(req.user.id, dto.pin);
+  }
   @Post('verify-pin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify parent PIN' })
   @ApiResponse({ status: 200, description: 'PIN is valid' })
   @ApiResponse({ status: 401, description: 'Invalid PIN' })
   async verifyPin(
-    @Session() session: UserSession<typeof auth>,
+    @Request() req: { user: { id: string } },
     @Body() dto: VerifyPinDto,
   ): Promise<{ valid: boolean }> {
-    const parent = await this.parentService.findByUserId(session.user.id);
-    await this.parentService.verifyPin(parent.id, dto.pin);
-    return { valid: true };
+    await this.parentService
+          .verifyPin(req.user.id, dto.pin);
+      return ({ valid: true });
   }
 }

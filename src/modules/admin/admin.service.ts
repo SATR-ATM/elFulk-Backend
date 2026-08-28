@@ -8,12 +8,16 @@ import {
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { auth } from '../../auth';
+import { hash } from 'bcrypt';
 import { Admin, AdminRole, AccountStatus } from './admin.entity';
-import { Parent } from '../parent/parent.entity';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { UpdateAdminRoleStatusDto } from './dto/update-admin-role-status.dto';
+
+const SALT_ROUNDS = 10;
+
+const hashPassword = (password: string): Promise<string> =>
+  hash(password, SALT_ROUNDS);
 
 @Injectable()
 export class AdminService {
@@ -22,20 +26,7 @@ export class AdminService {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
-    @InjectRepository(Parent)
-    private readonly parentRepo: Repository<Parent>,
-  ) {}
-
-  async findByUserId(userId: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({
-      where: { userId },
-      relations: ['user'],
-    });
-    if (!admin) {
-      throw new NotFoundException('Admin not found');
-    }
-    return admin;
-  }
+  ) { }
 
   async ensureSuperAdminExists(): Promise<void> {
     const superAdminExists = await this.adminRepository.exists({
@@ -58,28 +49,13 @@ export class AdminService {
       return;
     }
 
-    let user: { id: string };
-    try {
-      const result = (await auth.api.signUpEmail({
-        body: {
-          email,
-          password,
-          name: `${firstName} ${lastName}`,
-          first_name: firstName,
-          last_name: lastName,
-        },
-      })) as { user: { id: string } };
-      user = result.user;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `SUPER_ADMIN Better Auth user creation failed: ${message}`,
-      );
-      return;
-    }
+    const passwordHash = await hashPassword(password);
 
     const superAdmin = this.adminRepository.create({
-      userId: user.id,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      password_hash: passwordHash,
       role: AdminRole.SUPER_ADMIN,
       status: AccountStatus.ACTIVE,
       approved_at: new Date(),
@@ -104,17 +80,7 @@ export class AdminService {
     }
   }
 
-  async create(
-    requesterId: string,
-    createAdminDto: CreateAdminDto,
-  ): Promise<Admin> {
-    const requester = await this.adminRepository.findOne({
-      where: { userId: requesterId },
-    });
-    if (!requester || requester.role !== AdminRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Only super admins can create admins');
-    }
-
+  async create(createAdminDto: CreateAdminDto): Promise<Admin> {
     if (
       !createAdminDto.password ||
       typeof createAdminDto.password !== 'string'
@@ -124,27 +90,12 @@ export class AdminService {
       );
     }
 
-    const { password, ...dto } = createAdminDto;
-
-    const { user } = (await auth.api.signUpEmail({
-      body: {
-        email: dto.email.toLowerCase().trim(),
-        password,
-        name: `${dto.first_name} ${dto.last_name}`,
-        first_name: dto.first_name,
-        last_name: dto.last_name,
-      },
-    })) as { user: { id: string } };
-
-    const existingParent = await this.parentRepo.findOne({
-      where: { userId: user.id },
-    });
-    if (existingParent) {
-      throw new ConflictException('User cannot be registered as an admin');
-    }
-
+    const hashedPassword = await hashPassword(createAdminDto.password);
     const admin = this.adminRepository.create({
-      userId: user.id,
+      first_name: createAdminDto.first_name,
+      last_name: createAdminDto.last_name,
+      email: createAdminDto.email.toLowerCase().trim(),
+      password_hash: hashedPassword,
       role: AdminRole.MODERATOR,
       status: AccountStatus.PENDING,
     });
@@ -166,16 +117,12 @@ export class AdminService {
 
   async findAll(): Promise<Admin[]> {
     return this.adminRepository.find({
-      relations: ['user'],
       order: { created_at: 'DESC' },
     });
   }
 
   async findOne(id: string): Promise<Admin> {
-    const admin = await this.adminRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
+    const admin = await this.adminRepository.findOne({ where: { id } });
 
     if (!admin) {
       throw new NotFoundException('Admin not found');
@@ -184,18 +131,31 @@ export class AdminService {
     return admin;
   }
 
+  async findByEmailWithPassword(email: string): Promise<Admin | null> {
+    return this.adminRepository.findOne({
+      where: { email: email.toLowerCase().trim() },
+      select: ['id', 'email', 'password_hash', 'role', 'status'],
+    });
+  }
+
   async updateProfile(
     id: string,
     updateAdminDto: UpdateAdminDto,
   ): Promise<Admin> {
-    const admin = await this.findOne(id);
+    const updatePayload: Partial<Admin> = {
+      first_name: updateAdminDto.first_name,
+      last_name: updateAdminDto.last_name,
+      email: updateAdminDto.email,
+    };
 
-    if (updateAdminDto.first_name || updateAdminDto.last_name) {
-      admin.user = {
-        ...admin.user,
-        first_name: updateAdminDto.first_name ?? admin.user.first_name,
-        last_name: updateAdminDto.last_name ?? admin.user.last_name,
-      };
+    if (updateAdminDto.password) {
+      updatePayload.password_hash = await hashPassword(updateAdminDto.password);
+    }
+
+    const admin = await this.adminRepository.preload({ id, ...updatePayload });
+
+    if (!admin) {
+      throw new NotFoundException('Admin not found');
     }
 
     return this.adminRepository.save(admin);
