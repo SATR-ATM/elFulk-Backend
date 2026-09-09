@@ -10,6 +10,7 @@ import { AccessPolicyModule } from './modules/access-policy/access-policy.module
 import { AdminModule } from './modules/admin/admin.module';
 import { ChildModule } from './modules/child/child.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { auth } from './auth';
 
 @Module({
@@ -42,6 +43,7 @@ import { auth } from './auth';
     AdminModule,
     ChildModule,
     ParentModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
